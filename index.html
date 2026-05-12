@@ -731,7 +731,7 @@
                 <div class="page-header">
                     <h1 class="page-title">Espacios y Plantas</h1>
                     <div style="display: flex; gap: 12px;">
-                        <button class="btn btn-outline" onclick="handlers.openModal('space-modal')">
+                        <button class="btn btn-outline" onclick="document.getElementById('edit-space-id').value=''; document.querySelector('#space-modal form').reset(); document.querySelector('#space-modal .modal-header h2').textContent='Nuevo Espacio'; handlers.openModal('space-modal')">
                             <i class="fa-solid fa-plus"></i> Nuevo Espacio
                         </button>
                         <button class="btn btn-primary" onclick="handlers.openModal('plant-modal')">
@@ -766,11 +766,19 @@
                                     <span><i class="fa-solid fa-lightbulb"></i> ${space.luz}</span>
                                 </div>
                             </div>
-                            ${canDelete ? `
-                                <button class="btn-icon" style="color: var(--status-alert); border-color: transparent; width: 32px; height: 32px;" onclick="event.stopPropagation(); handlers.deleteSpace('${space.id}')" title="Eliminar espacio vacío">
-                                    <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-icon" style="color: var(--accent-teal); border-color: transparent; width: 32px; height: 32px;" onclick="handlers.openPlantModalForSpace('${space.id}')" title="Añadir planta a este espacio">
+                                    <i class="fa-solid fa-plus" style="font-size: 14px;"></i>
                                 </button>
-                            ` : ''}
+                                <button class="btn-icon" style="color: var(--text-secondary); border-color: transparent; width: 32px; height: 32px;" onclick="handlers.editSpace('${space.id}')" title="Editar espacio">
+                                    <i class="fa-solid fa-pen" style="font-size: 14px;"></i>
+                                </button>
+                                ${canDelete ? `
+                                    <button class="btn-icon" style="color: var(--status-alert); border-color: transparent; width: 32px; height: 32px;" onclick="handlers.deleteSpace('${space.id}')" title="Eliminar espacio vacío">
+                                        <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>
                         <div class="table-wrapper" style="border: none; border-radius: 0;">
                             ${spacePlants.length ? this.renderPlantsTable(spacePlants) : '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;">No hay plantas en este espacio.</div>'}
@@ -1088,6 +1096,7 @@
                 const container = document.getElementById('modals-container');
 
                 const spaceForm = `
+                    <input type="hidden" name="spaceId" id="edit-space-id" value="">
                     <div class="form-group">
                         <label class="form-label">Nombre del Espacio</label>
                         <input type="text" class="form-control" name="nombre" placeholder="Ej: Sala Vegetativo 1" required>
@@ -1301,13 +1310,26 @@
                     saveState();
                 } else if (modalId === 'space-modal') {
                     if (!state.spaces) state.spaces = [];
-                    state.spaces.push({ 
-                        id: utils.generateId(), 
-                        nombre: data.nombre,
-                        tipo: data.tipo,
-                        sustrato: data.sustrato,
-                        luz: data.luz
-                    });
+                    
+                    if (data.spaceId) {
+                        // Editando existente
+                        const space = state.spaces.find(s => s.id === data.spaceId);
+                        if (space) {
+                            space.nombre = data.nombre;
+                            space.tipo = data.tipo;
+                            space.sustrato = data.sustrato;
+                            space.luz = data.luz;
+                        }
+                    } else {
+                        // Creando nuevo
+                        state.spaces.push({ 
+                            id: utils.generateId(), 
+                            nombre: data.nombre,
+                            tipo: data.tipo,
+                            sustrato: data.sustrato,
+                            luz: data.luz
+                        });
+                    }
                     render.setupModals();
                     saveState();
                 } else if (modalId === 'plant-modal') {
@@ -1337,6 +1359,29 @@
                 document.getElementById('move-space-select').value = plant.spaceId;
                 document.getElementById('move-etapa-select').value = plant.etapa;
                 this.openModal('move-plant-modal');
+            },
+
+            editSpace(spaceId) {
+                const space = state.spaces.find(s => s.id === spaceId);
+                if (!space) return;
+                
+                // Llenar el formulario con los datos actuales
+                document.getElementById('edit-space-id').value = space.id;
+                document.querySelector('#space-modal input[name="nombre"]').value = space.nombre;
+                document.querySelector('#space-modal select[name="tipo"]').value = space.tipo;
+                document.querySelector('#space-modal select[name="sustrato"]').value = space.sustrato;
+                document.querySelector('#space-modal input[name="luz"]').value = space.luz;
+                
+                // Cambiar título del modal
+                document.querySelector('#space-modal .modal-header h2').textContent = 'Editar Espacio';
+                
+                this.openModal('space-modal');
+            },
+
+            openPlantModalForSpace(spaceId) {
+                // Pre-seleccionar el espacio en el formulario de nueva planta
+                this.openModal('plant-modal');
+                document.querySelector('#plant-modal select[name="spaceId"]').value = spaceId;
             },
 
             deleteSpace(spaceId) {
