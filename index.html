@@ -551,8 +551,9 @@
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
             state.spaces = [
-                { id: 's1', nombre: 'Carpa A (Floración)' },
-                { id: 's2', nombre: 'Carpa B (Vegetativo)' }
+                { id: 's1', nombre: 'Carpa A', tipo: 'interior', sustrato: 'tierra', luz: 'LED 300W' },
+                { id: 's2', nombre: 'Sistema Hidro 1', tipo: 'interior', sustrato: 'hidroponía', luz: 'LED 400W' },
+                { id: 's3', nombre: 'Invernadero Exterior', tipo: 'exterior', sustrato: 'tierra', luz: 'Sol' }
             ];
 
             state.plants = [
@@ -751,12 +752,19 @@
                     html += `
                     <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
                         <div style="padding: 16px 24px; background: var(--bg-surface-hover); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <h3 style="margin: 0; font-size: 16px;">
-                                    <i class="fa-solid fa-layer-group" style="color: var(--accent-teal); margin-right: 8px;"></i>
-                                    ${space.nombre}
-                                </h3>
-                                <span class="badge" style="background: var(--bg-surface-active); color: var(--text-secondary);">${spacePlants.length} plantas</span>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <h3 style="margin: 0; font-size: 16px;">
+                                        <i class="fa-solid fa-layer-group" style="color: var(--accent-teal); margin-right: 8px;"></i>
+                                        ${space.nombre}
+                                    </h3>
+                                    <span class="badge" style="background: var(--bg-surface-active); color: var(--text-secondary);">${spacePlants.length} plantas</span>
+                                </div>
+                                <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-secondary);">
+                                    <span style="text-transform: capitalize;"><i class="fa-solid ${space.tipo === 'exterior' ? 'fa-sun' : 'fa-house'}"></i> ${space.tipo}</span>
+                                    <span><i class="fa-solid fa-seedling"></i> ${space.sustrato}</span>
+                                    <span><i class="fa-solid fa-lightbulb"></i> ${space.luz}</span>
+                                </div>
                             </div>
                             ${canDelete ? `
                                 <button class="btn-icon" style="color: var(--status-alert); border-color: transparent; width: 32px; height: 32px;" onclick="event.stopPropagation(); handlers.deleteSpace('${space.id}')" title="Eliminar espacio vacío">
@@ -1084,6 +1092,29 @@
                         <label class="form-label">Nombre del Espacio</label>
                         <input type="text" class="form-control" name="nombre" placeholder="Ej: Sala Vegetativo 1" required>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Entorno</label>
+                            <select class="form-control" name="tipo" required>
+                                <option value="interior">Interior (Indoor)</option>
+                                <option value="exterior">Exterior (Outdoor)</option>
+                                <option value="invernadero">Invernadero</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Medio de Cultivo</label>
+                            <select class="form-control" name="sustrato" required>
+                                <option value="tierra">Tierra / Sustrato</option>
+                                <option value="coco">Fibra de Coco</option>
+                                <option value="hidroponia">Hidroponía (DWC / NFT)</option>
+                                <option value="aeroponia">Aeroponía</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Iluminación Principal</label>
+                        <input type="text" class="form-control" name="luz" placeholder="Ej: LED Samsung 300W o Sol" required>
+                    </div>
                 `;
 
                 const movePlantForm = `
@@ -1270,7 +1301,13 @@
                     saveState();
                 } else if (modalId === 'space-modal') {
                     if (!state.spaces) state.spaces = [];
-                    state.spaces.push({ id: utils.generateId(), nombre: data.nombre });
+                    state.spaces.push({ 
+                        id: utils.generateId(), 
+                        nombre: data.nombre,
+                        tipo: data.tipo,
+                        sustrato: data.sustrato,
+                        luz: data.luz
+                    });
                     render.setupModals();
                     saveState();
                 } else if (modalId === 'plant-modal') {
