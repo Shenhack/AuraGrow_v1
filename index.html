@@ -520,6 +520,23 @@
             theme: 'dark'
         };
 
+        // PERSISTENCIA
+        const STORAGE_KEY = 'auraGrow_v1';
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(state, parsed);
+                return true;
+            }
+            return false;
+        }
+
         /* =========================================================================
            2. SEED_DATA
            ========================================================================= */
@@ -1133,7 +1150,7 @@
                 const task = state.tasks.find(t => t.id === id);
                 if(task) {
                     task.completada = !task.completada;
-                    // Re-render only if in tasks or dashboard
+                    saveState();
                     if(state.activeView === 'tasks' || state.activeView === 'dashboard') {
                         render.app();
                     }
@@ -1167,43 +1184,30 @@
             submitForm(e, modalId) {
                 e.preventDefault();
                 const form = e.target;
-                const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
-                
+                const data = Object.fromEntries(new FormData(form).entries());
+
                 if (modalId === 'task-modal') {
-                    state.tasks.unshift({
-                        id: utils.generateId(),
-                        titulo: data.titulo,
-                        fecha: data.fecha,
-                        prioridad: data.prioridad,
-                        completada: false,
-                        plantId: data.plantId || null
-                    });
+                    state.tasks.unshift({ id: utils.generateId(), titulo: data.titulo, fecha: data.fecha, prioridad: data.prioridad, completada: false, plantId: data.plantId || null });
+                    saveState();
                 } else if (modalId === 'plant-modal') {
-                    state.plants.unshift({
-                        id: utils.generateId(),
-                        nombre: data.nombre,
-                        variedad: data.variedad,
-                        etapa: data.etapa,
-                        sistema: data.sistema,
-                        ubicacion: data.ubicacion,
-                        fechaInicio: new Date().toISOString(),
-                        estado: 'activa'
-                    });
-                    render.setupModals(); // Rebuild modals to include new plant in selects
+                    state.plants.unshift({ id: utils.generateId(), nombre: data.nombre, variedad: data.variedad, etapa: data.etapa, sistema: data.sistema, ubicacion: data.ubicacion, fechaInicio: new Date().toISOString(), estado: 'activa' });
+                    render.setupModals();
+                    saveState();
                 } else if (modalId === 'log-modal') {
-                    state.logs.unshift({
-                        id: utils.generateId(),
-                        plantId: data.plantId,
-                        tipo: data.tipo,
-                        fecha: new Date().toISOString(),
-                        nota: data.nota
-                    });
+                    state.logs.unshift({ id: utils.generateId(), plantId: data.plantId, tipo: data.tipo, fecha: new Date().toISOString(), nota: data.nota });
+                    saveState();
                 }
 
                 form.reset();
                 this.closeModal(null, modalId, true);
                 render.app();
+            },
+
+            resetData() {
+                if (confirm('¿Borrar todos los datos y volver al estado inicial?')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }
             }
         };
 
@@ -1240,7 +1244,8 @@
            7. INIT
            ========================================================================= */
         function initApp() {
-            loadSeedData();
+            const hadData = loadState();
+            if (!hadData) loadSeedData();
             render.setupModals();
             router.init();
 
