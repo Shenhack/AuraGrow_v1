@@ -511,6 +511,7 @@
            1. STATE
            ========================================================================= */
         const state = {
+            selectedSpaceId: null,
             spaces: [],
             plants: [],
             logs: [],
@@ -727,64 +728,84 @@
             },
 
             plantsView() {
-                let html = `
-                <div class="page-header">
-                    <h1 class="page-title">Espacios y Plantas</h1>
-                    <div style="display: flex; gap: 12px;">
-                        <button class="btn btn-outline" onclick="document.getElementById('edit-space-id').value=''; document.querySelector('#space-modal form').reset(); document.querySelector('#space-modal .modal-header h2').textContent='Nuevo Espacio'; handlers.openModal('space-modal')">
-                            <i class="fa-solid fa-plus"></i> Nuevo Espacio
-                        </button>
-                        <button class="btn btn-primary" onclick="handlers.openModal('plant-modal')">
-                            <i class="fa-solid fa-plus"></i> Nueva Planta
-                        </button>
-                    </div>
-                </div>`;
-
-                if (!state.spaces || state.spaces.length === 0) {
-                    html += `<div class="empty-state">No hay espacios creados. Crea tu primer espacio (ej. Carpa A) para agregar plantas.</div>`;
-                    return html;
-                }
-
-                state.spaces.forEach(space => {
+                // NIVEL 2: VISTA DENTRO DE UN ESPACIO
+                if (state.selectedSpaceId) {
+                    const space = state.spaces.find(s => s.id === state.selectedSpaceId);
+                    if (!space) return this.backToSpaces();
+                    
                     const spacePlants = state.plants.filter(p => p.spaceId === space.id);
                     const canDelete = spacePlants.length === 0;
-                    
-                    html += `
-                    <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
-                        <div style="padding: 16px 24px; background: var(--bg-surface-hover); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; flex-direction: column; gap: 6px;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <h3 style="margin: 0; font-size: 16px;">
-                                        <i class="fa-solid fa-layer-group" style="color: var(--accent-teal); margin-right: 8px;"></i>
-                                        ${space.nombre}
-                                    </h3>
-                                    <span class="badge" style="background: var(--bg-surface-active); color: var(--text-secondary);">${spacePlants.length} plantas</span>
-                                </div>
-                                <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-secondary);">
-                                    <span style="text-transform: capitalize;"><i class="fa-solid ${space.tipo === 'exterior' ? 'fa-sun' : 'fa-house'}"></i> ${space.tipo}</span>
+
+                    let html = `
+                    <div class="page-header">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <button class="btn btn-outline" onclick="handlers.backToSpaces()">
+                                <i class="fa-solid fa-arrow-left"></i> Atrás
+                            </button>
+                            <div>
+                                <h1 class="page-title" style="margin-bottom: 4px;">${space.nombre}</h1>
+                                <div style="display: flex; gap: 12px; font-size: 13px; color: var(--text-secondary);">
+                                    <span style="text-transform: capitalize;"><i class="fa-solid ${space.tipo === 'interior' ? 'fa-campground' : space.tipo === 'exterior' ? 'fa-sun' : 'fa-house-chimney'}"></i> ${space.tipo}</span>
                                     <span><i class="fa-solid fa-seedling"></i> ${space.sustrato}</span>
                                     <span><i class="fa-solid fa-lightbulb"></i> ${space.luz}</span>
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn-icon" style="color: var(--accent-teal); border-color: transparent; width: 32px; height: 32px;" onclick="handlers.openPlantModalForSpace('${space.id}')" title="Añadir planta a este espacio">
-                                    <i class="fa-solid fa-plus" style="font-size: 14px;"></i>
-                                </button>
-                                <button class="btn-icon" style="color: var(--text-secondary); border-color: transparent; width: 32px; height: 32px;" onclick="handlers.editSpace('${space.id}')" title="Editar espacio">
-                                    <i class="fa-solid fa-pen" style="font-size: 14px;"></i>
-                                </button>
-                                ${canDelete ? `
-                                    <button class="btn-icon" style="color: var(--status-alert); border-color: transparent; width: 32px; height: 32px;" onclick="handlers.deleteSpace('${space.id}')" title="Eliminar espacio vacío">
-                                        <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
                         </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn btn-outline" onclick="handlers.editSpace('${space.id}')">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </button>
+                            ${canDelete ? `
+                            <button class="btn btn-outline" style="color: var(--status-critical); border-color: var(--status-critical);" onclick="handlers.deleteSpace('${space.id}')">
+                                <i class="fa-solid fa-trash"></i> Borrar
+                            </button>` : ''}
+                            <button class="btn btn-primary" onclick="handlers.openPlantModalForSpace('${space.id}')">
+                                <i class="fa-solid fa-plus"></i> Nueva Planta
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="card" style="padding: 0; overflow: hidden;">
                         <div class="table-wrapper" style="border: none; border-radius: 0;">
-                            ${spacePlants.length ? this.renderPlantsTable(spacePlants) : '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;">No hay plantas en este espacio.</div>'}
+                            ${spacePlants.length ? this.renderPlantsTable(spacePlants) : '<div class="empty-state">No hay plantas en este espacio. Agrega tu primera planta.</div>'}
+                        </div>
+                    </div>`;
+                    return html;
+                }
+
+                // NIVEL 1: DIRECTORIO DE ESPACIOS
+                let html = `
+                <div class="page-header">
+                    <h1 class="page-title">Tus Espacios</h1>
+                    <button class="btn btn-primary" onclick="document.getElementById('edit-space-id').value=''; document.querySelector('#space-modal form').reset(); document.querySelector('#space-modal .modal-header h2').textContent='Nuevo Espacio'; handlers.openModal('space-modal')">
+                        <i class="fa-solid fa-plus"></i> Crear Espacio
+                    </button>
+                </div>`;
+
+                if (!state.spaces || state.spaces.length === 0) {
+                    html += `<div class="empty-state"><i class="fa-solid fa-layer-group"></i><br>No hay espacios creados. Crea tu primer espacio (ej. Carpa A).</div>`;
+                    return html;
+                }
+
+                html += `<div class="grid-kpi" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">`;
+                state.spaces.forEach(space => {
+                    const spacePlants = state.plants.filter(p => p.spaceId === space.id);
+                    const icon = space.tipo === 'interior' ? 'fa-campground' : space.tipo === 'exterior' ? 'fa-sun' : 'fa-house-chimney';
+                    
+                    html += `
+                    <div class="card" style="cursor: pointer; transition: transform 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 32px 24px;" onclick="handlers.viewSpace('${space.id}')" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--accent-teal-dim); color: var(--accent-teal); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 16px;">
+                            <i class="fa-solid ${icon}"></i>
+                        </div>
+                        <h3 style="font-size: 18px; margin-bottom: 8px;">${space.nombre}</h3>
+                        <span class="badge" style="background: var(--bg-surface-active); color: var(--text-secondary); margin-bottom: 16px;">${spacePlants.length} plantas</span>
+                        <div style="display: flex; justify-content: center; gap: 16px; font-size: 12px; color: var(--text-secondary); width: 100%;">
+                            <span><i class="fa-solid fa-seedling"></i> ${space.sustrato}</span>
+                            <span><i class="fa-solid fa-lightbulb"></i> ${space.luz}</span>
                         </div>
                     </div>`;
                 });
+                html += `</div>`;
 
                 return html;
             },
@@ -1055,8 +1076,11 @@
                             <span class="log-plant">${utils.getPlantName(l.plantId)} <span style="color:var(--text-secondary); margin-left:8px; font-size:11px; text-transform:uppercase;">${l.tipo}</span></span>
                         </div>
                         <div class="log-body">
-                            <i class="fa-solid ${icon}" style="margin-right: 8px; color: var(--text-secondary);"></i>
-                            ${l.nota}
+                            <div style="margin-bottom: ${l.foto ? '12px' : '0'};">
+                                <i class="fa-solid ${icon}" style="margin-right: 8px; color: var(--text-secondary);"></i>
+                                ${l.nota}
+                            </div>
+                            ${l.foto ? `<img src="${l.foto}" style="max-width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-color);">` : ''}
                         </div>
                     </div>
                 `;
@@ -1243,6 +1267,12 @@
                         <label class="form-label">Notas</label>
                         <textarea class="form-control" name="nota" rows="4" required></textarea>
                     </div>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label class="form-label"><i class="fa-solid fa-camera"></i> Adjuntar Foto (Opcional)</label>
+                        <input type="file" class="form-control" accept="image/*" onchange="handlers.handlePhotoUpload(event)" style="padding: 8px;">
+                        <input type="hidden" name="fotoData" id="log-photo-data">
+                        <img id="log-photo-preview" style="max-width: 100%; display: none; margin-top: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    </div>
                 `;
 
                 container.innerHTML = `
@@ -1260,6 +1290,40 @@
            5. HANDLERS
            ========================================================================= */
         const handlers = {
+            viewSpace(id) {
+                state.selectedSpaceId = id;
+                render.app();
+            },
+            backToSpaces() {
+                state.selectedSpaceId = null;
+                render.app();
+            },
+            handlePhotoUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Comprimir la imagen para no romper el localStorage (max 5MB)
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 600; // Resolución máxima
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // 60% calidad
+                        
+                        document.getElementById('log-photo-data').value = dataUrl;
+                        const preview = document.getElementById('log-photo-preview');
+                        preview.src = dataUrl;
+                        preview.style.display = 'block';
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            },
             viewPlantDetail(id) {
                 state.selectedPlantId = id;
                 window.location.hash = 'plant-detail';
@@ -1337,7 +1401,18 @@
                     render.setupModals();
                     saveState();
                 } else if (modalId === 'log-modal') {
-                    state.logs.unshift({ id: utils.generateId(), plantId: data.plantId, tipo: data.tipo, fecha: new Date().toISOString(), nota: data.nota });
+                    state.logs.unshift({ 
+                        id: utils.generateId(), 
+                        plantId: data.plantId, 
+                        tipo: data.tipo, 
+                        fecha: new Date().toISOString(), 
+                        nota: data.nota,
+                        foto: data.fotoData || null // Guarda la foto comprimida si existe
+                    });
+                    // Limpiar el preview para el proximo uso
+                    document.getElementById('log-photo-data').value = '';
+                    document.getElementById('log-photo-preview').style.display = 'none';
+                    document.getElementById('log-photo-preview').src = '';
                     saveState();
                 } else if (modalId === 'move-plant-modal') {
                     const plant = state.plants.find(p => p.id === state.selectedPlantId);
