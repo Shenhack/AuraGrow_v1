@@ -511,6 +511,7 @@
            1. STATE
            ========================================================================= */
         const state = {
+            spaces: [],
             plants: [],
             logs: [],
             tasks: [],
@@ -549,11 +550,16 @@
             const twoDaysAgo = new Date(today); twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
+            state.spaces = [
+                { id: 's1', nombre: 'Carpa A (Floración)' },
+                { id: 's2', nombre: 'Carpa B (Vegetativo)' }
+            ];
+
             state.plants = [
-                { id: 'p1', nombre: 'OG Kush Alpha', variedad: 'OG Kush', etapa: 'floración', fechaInicio: '2023-09-01', ubicacion: 'Carpa A', sistema: 'tierra', estado: 'activa' },
-                { id: 'p2', nombre: 'Blue Dream #1', variedad: 'Blue Dream', etapa: 'floración', fechaInicio: '2023-09-10', ubicacion: 'Carpa A', sistema: 'hidro', estado: 'activa' },
-                { id: 'p3', nombre: 'Amnesia Haze', variedad: 'Amnesia Haze', etapa: 'vegetativo', fechaInicio: '2023-10-15', ubicacion: 'Carpa B', sistema: 'aeropónico', estado: 'activa' },
-                { id: 'p4', nombre: 'Gelato 41', variedad: 'Gelato 41', etapa: 'vegetativo', fechaInicio: '2023-10-20', ubicacion: 'Carpa B', sistema: 'tierra', estado: 'activa' }
+                { id: 'p1', nombre: 'OG Kush Alpha', variedad: 'OG Kush', etapa: 'floración', fechaInicio: '2023-09-01', spaceId: 's1', sistema: 'tierra', estado: 'activa' },
+                { id: 'p2', nombre: 'Blue Dream #1', variedad: 'Blue Dream', etapa: 'floración', fechaInicio: '2023-09-10', spaceId: 's1', sistema: 'hidro', estado: 'activa' },
+                { id: 'p3', nombre: 'Amnesia Haze', variedad: 'Amnesia Haze', etapa: 'vegetativo', fechaInicio: '2023-10-15', spaceId: 's2', sistema: 'aeropónico', estado: 'activa' },
+                { id: 'p4', nombre: 'Gelato 41', variedad: 'Gelato 41', etapa: 'vegetativo', fechaInicio: '2023-10-20', spaceId: 's2', sistema: 'tierra', estado: 'activa' }
             ];
 
             state.logs = [
@@ -720,48 +726,82 @@
             },
 
             plantsView() {
-                return `
-                    <div class="page-header">
-                        <h1 class="page-title">Inventario de Plantas</h1>
+                let html = `
+                <div class="page-header">
+                    <h1 class="page-title">Espacios y Plantas</h1>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-outline" onclick="handlers.openModal('space-modal')">
+                            <i class="fa-solid fa-plus"></i> Nuevo Espacio
+                        </button>
                         <button class="btn btn-primary" onclick="handlers.openModal('plant-modal')">
                             <i class="fa-solid fa-plus"></i> Nueva Planta
                         </button>
                     </div>
+                </div>`;
+
+                if (!state.spaces || state.spaces.length === 0) {
+                    html += `<div class="empty-state">No hay espacios creados. Crea tu primer espacio (ej. Carpa A) para agregar plantas.</div>`;
+                    return html;
+                }
+
+                state.spaces.forEach(space => {
+                    const spacePlants = state.plants.filter(p => p.spaceId === space.id);
+                    const canDelete = spacePlants.length === 0;
                     
-                    <div class="card" style="padding: 0; overflow: hidden;">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Variedad</th>
-                                        <th>Etapa</th>
-                                        <th>Ubicación</th>
-                                        <th>Días</th>
-                                        <th>Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${state.plants.map(p => `
-                                        <tr style="cursor: pointer;" onclick="handlers.viewPlantDetail('${p.id}')">
-                                            <td style="font-weight: 500; color: var(--text-primary)">${p.nombre}</td>
-                                            <td>${p.variedad}</td>
-                                            <td>${this._badgeEtapa(p.etapa)}</td>
-                                            <td><i class="fa-solid fa-location-dot" style="margin-right: 6px; color: var(--text-secondary)"></i>${p.ubicacion}</td>
-                                            <td>${utils.daysBetween(p.fechaInicio)} d</td>
-                                            <td>
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <div class="status-dot ${utils.getPlantStatusColor(p)}"></div>
-                                                    <span style="text-transform: capitalize">${p.estado}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+                    html += `
+                    <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+                        <div style="padding: 16px 24px; background: var(--bg-surface-hover); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <h3 style="margin: 0; font-size: 16px;">
+                                    <i class="fa-solid fa-layer-group" style="color: var(--accent-teal); margin-right: 8px;"></i>
+                                    ${space.nombre}
+                                </h3>
+                                <span class="badge" style="background: var(--bg-surface-active); color: var(--text-secondary);">${spacePlants.length} plantas</span>
+                            </div>
+                            ${canDelete ? `
+                                <button class="btn-icon" style="color: var(--status-alert); border-color: transparent; width: 32px; height: 32px;" onclick="event.stopPropagation(); handlers.deleteSpace('${space.id}')" title="Eliminar espacio vacío">
+                                    <i class="fa-solid fa-trash-can" style="font-size: 14px;"></i>
+                                </button>
+                            ` : ''}
                         </div>
-                    </div>
-                `;
+                        <div class="table-wrapper" style="border: none; border-radius: 0;">
+                            ${spacePlants.length ? this.renderPlantsTable(spacePlants) : '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;">No hay plantas en este espacio.</div>'}
+                        </div>
+                    </div>`;
+                });
+
+                return html;
+            },
+
+            renderPlantsTable(plants) {
+                return `
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Variedad</th>
+                            <th>Etapa</th>
+                            <th>Días</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${plants.map(p => `
+                        <tr style="cursor: pointer;" onclick="handlers.viewPlantDetail('${p.id}')">
+                            <td style="font-weight: 500; color: var(--text-primary);">${p.nombre}</td>
+                            <td>${p.variedad}</td>
+                            <td>${this._badgeEtapa(p.etapa)}</td>
+                            <td>${utils.daysBetween(p.fechaInicio, new Date())} d</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <div class="status-dot ${utils.getPlantStatusColor(p)}"></div>
+                                    <span style="text-transform: capitalize;">${p.estado}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
             },
 
             plantDetailView() {
@@ -779,6 +819,9 @@
                             </button>
                             <h1 class="page-title">${p.nombre} <span style="font-size:14px; color:var(--text-secondary)">${p.variedad}</span></h1>
                         </div>
+                        <button class="btn btn-outline" onclick="handlers.openMoveModal()">
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i> Mover
+                        </button>
                     </div>
                     
                     <div class="grid-kpi">
@@ -1028,8 +1071,40 @@
                 return state.plants.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
             },
 
+            spaceOptions() {
+                if (!state.spaces || state.spaces.length === 0) return `<option value="" disabled selected>Crea un espacio primero</option>`;
+                return state.spaces.map(s => `<option value="${s.id}">${s.nombre}</option>`).join('');
+            },
+
             setupModals() {
                 const container = document.getElementById('modals-container');
+
+                const spaceForm = `
+                    <div class="form-group">
+                        <label class="form-label">Nombre del Espacio</label>
+                        <input type="text" class="form-control" name="nombre" placeholder="Ej: Sala Vegetativo 1" required>
+                    </div>
+                `;
+
+                const movePlantForm = `
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Mover a Espacio</label>
+                            <select class="form-control" id="move-space-select" name="spaceId" required>
+                                ${this.spaceOptions()}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Actualizar Etapa</label>
+                            <select class="form-control" id="move-etapa-select" name="etapa" required>
+                                <option value="germinación">Germinación</option>
+                                <option value="vegetativo">Vegetativo</option>
+                                <option value="floración">Floración</option>
+                                <option value="cosecha">Cosecha</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
                 
                 const taskForm = `
                     <div class="form-group">
@@ -1088,8 +1163,10 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Ubicación</label>
-                            <input type="text" class="form-control" name="ubicacion" placeholder="Ej: Carpa A" required>
+                            <label class="form-label">Espacio Asignado</label>
+                            <select class="form-control" name="spaceId" required>
+                                ${this.spaceOptions()}
+                            </select>
                         </div>
                     </div>
                 `;
@@ -1129,6 +1206,8 @@
                 `;
 
                 container.innerHTML = `
+                    ${this.modalHtml('space-modal', 'Nuevo Espacio', spaceForm)}
+                    ${this.modalHtml('move-plant-modal', 'Mover / Cambiar Etapa', movePlantForm)}
                     ${this.modalHtml('task-modal', 'Nueva Tarea', taskForm)}
                     ${this.modalHtml('plant-modal', 'Nueva Planta', plantForm)}
                     ${this.modalHtml('log-modal', 'Nuevo Registro', logForm)}
@@ -1189,18 +1268,54 @@
                 if (modalId === 'task-modal') {
                     state.tasks.unshift({ id: utils.generateId(), titulo: data.titulo, fecha: data.fecha, prioridad: data.prioridad, completada: false, plantId: data.plantId || null });
                     saveState();
+                } else if (modalId === 'space-modal') {
+                    if (!state.spaces) state.spaces = [];
+                    state.spaces.push({ id: utils.generateId(), nombre: data.nombre });
+                    render.setupModals();
+                    saveState();
                 } else if (modalId === 'plant-modal') {
-                    state.plants.unshift({ id: utils.generateId(), nombre: data.nombre, variedad: data.variedad, etapa: data.etapa, sistema: data.sistema, ubicacion: data.ubicacion, fechaInicio: new Date().toISOString(), estado: 'activa' });
+                    state.plants.unshift({ id: utils.generateId(), nombre: data.nombre, variedad: data.variedad, etapa: data.etapa, sistema: data.sistema, spaceId: data.spaceId, fechaInicio: new Date().toISOString(), estado: 'activa' });
                     render.setupModals();
                     saveState();
                 } else if (modalId === 'log-modal') {
                     state.logs.unshift({ id: utils.generateId(), plantId: data.plantId, tipo: data.tipo, fecha: new Date().toISOString(), nota: data.nota });
                     saveState();
+                } else if (modalId === 'move-plant-modal') {
+                    const plant = state.plants.find(p => p.id === state.selectedPlantId);
+                    if (plant) {
+                        plant.spaceId = data.spaceId;
+                        plant.etapa = data.etapa;
+                        saveState();
+                    }
                 }
 
                 form.reset();
                 this.closeModal(null, modalId, true);
                 render.app();
+            },
+
+            openMoveModal() {
+                const plant = state.plants.find(p => p.id === state.selectedPlantId);
+                if (!plant) return;
+                document.getElementById('move-space-select').value = plant.spaceId;
+                document.getElementById('move-etapa-select').value = plant.etapa;
+                this.openModal('move-plant-modal');
+            },
+
+            deleteSpace(spaceId) {
+                const space = state.spaces.find(s => s.id === spaceId);
+                if (!space) return;
+                const hasPlants = state.plants.some(p => p.spaceId === spaceId);
+                if (hasPlants) {
+                    alert('No puedes eliminar un espacio que contiene plantas. Mueve o elimina las plantas primero.');
+                    return;
+                }
+                if (confirm(`¿Estás seguro de eliminar el espacio "${space.nombre}"?`)) {
+                    state.spaces = state.spaces.filter(s => s.id !== spaceId);
+                    saveState();
+                    render.setupModals();
+                    render.app();
+                }
             },
 
             resetData() {
