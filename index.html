@@ -6,36 +6,29 @@
     <title>AuraGrow | Gestión de Cultivo Profesional</title>
     
     <!-- Fonts and Icons -->
-    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <style>
         /* === CSS VARIABLES === */
-        :root {
-            --font-main: 'Satoshi', system-ui, -apple-system, sans-serif;
-            --sidebar-width: 260px;
-            --topbar-height: 70px;
-            --radius-md: 8px;
-            --radius-lg: 16px;
-            --radius-pill: 9999px;
-            --transition-speed: 0.3s;
-        }
-
-        /* Dark Theme (Default) */
-        [data-theme="dark"] {
-            --bg-main: #171614;
-            --bg-surface: #1c1b19;
-            --bg-surface-hover: #262421;
-            --bg-surface-active: #312e2a;
+        :root, [data-theme="dark"], [data-theme="light"] {
+            /* Color Palette */
+            --bg-main: #050505;
+            --bg-surface: #111111;
+            --bg-surface-hover: #1a1a1a;
+            --bg-surface-active: #222222;
             
-            --text-primary: #f5f5f5;
-            --text-secondary: #a3a19e;
-            --border-color: #33312e;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-light: rgba(255, 255, 255, 0.15);
             
-            --accent-teal: #2DFF73;
-            --accent-teal-hover: #15e55c;
-            --accent-teal-dim: rgba(45, 255, 115, 0.15);
+            --text-primary: #f8f8f8;
+            --text-secondary: #a1a1aa;
+            
+            --accent-teal: #10b981;
+            --accent-teal-hover: #34d399;
+            --accent-teal-dim: rgba(16, 185, 129, 0.15);
             
             --status-optimal: #10b981;
             --status-optimal-dim: rgba(16, 185, 129, 0.15);
@@ -46,36 +39,25 @@
             --status-info: #3b82f6;
             --status-info-dim: rgba(59, 130, 246, 0.15);
             
-            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            /* Geometry */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-pill: 9999px;
+            
+            /* Typography */
+            --font-main: 'Outfit', system-ui, sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+            
+            /* Layout */
+            --sidebar-width: 280px;
+            --topbar-height: 80px;
+            --transition-speed: 0.3s;
+            
+            /* Effects */
+            --shadow-card: 0 8px 30px rgba(0,0,0,0.4);
             --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Light Theme */
-        [data-theme="light"] {
-            --bg-main: #fcfbf9;
-            --bg-surface: #ffffff;
-            --bg-surface-hover: #f0eee9;
-            --bg-surface-active: #e6e4df;
-            
-            --text-primary: #171614;
-            --text-secondary: #5c5a56;
-            --border-color: #e5e3de;
-            
-            --accent-teal: #24cc5c;
-            --accent-teal-hover: #1db24e;
-            --accent-teal-dim: rgba(36, 204, 92, 0.1);
-            
-            --status-optimal: #059669;
-            --status-optimal-dim: rgba(5, 150, 105, 0.1);
-            --status-alert: #d97706;
-            --status-alert-dim: rgba(217, 119, 6, 0.1);
-            --status-critical: #dc2626;
-            --status-critical-dim: rgba(220, 38, 38, 0.1);
-            --status-info: #2563eb;
-            --status-info-dim: rgba(37, 99, 235, 0.1);
-            
-            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.15);
         }
 
         /* === RESET & BASE === */
@@ -115,6 +97,15 @@
             flex-direction: column;
             z-index: 40;
             transition: transform var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 150px;
+            background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.1), transparent 70%);
+            pointer-events: none;
         }
 
         .brand {
@@ -190,14 +181,76 @@
 
         .topbar {
             height: var(--topbar-height);
-            background-color: var(--bg-surface);
+            background: rgba(5, 5, 5, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 32px;
+            padding: 0 40px;
             z-index: 10;
+            position: sticky;
+            top: 0;
         }
+
+        .header-search {
+            display: flex;
+            align-items: center;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pill);
+            padding: 8px 16px;
+            width: 300px;
+            transition: var(--transition-speed);
+        }
+
+        .header-search:focus-within {
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 0 3px var(--accent-teal-dim);
+        }
+
+        .header-search input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            outline: none;
+            margin-left: 10px;
+            width: 100%;
+            font-family: var(--font-main);
+        }
+
+        .search-results-dropdown {
+            position: absolute;
+            top: calc(var(--topbar-height) - 10px);
+            left: 40px;
+            width: 400px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-modal);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+            padding: 8px 0;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: var(--bg-surface-hover); }
+        .search-result-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent-teal-dim); color: var(--accent-teal); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .search-result-text { flex: 1; min-width: 0; }
+        .search-result-text h4 { font-size: 14px; margin-bottom: 2px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+        .search-result-text p { font-size: 12px; color: var(--text-secondary); margin: 0; }
 
         .menu-toggle {
             display: none;
@@ -283,7 +336,7 @@
         /* KPI Card */
         .kpi-card { display: flex; flex-direction: column; gap: 12px; }
         .kpi-label { color: var(--text-secondary); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-        .kpi-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; line-height: 1; display: flex; align-items: baseline; gap: 4px; }
+        .kpi-value { font-size: 36px; font-weight: 700; font-family: var(--font-mono); line-height: 1; display: flex; align-items: baseline; gap: 4px; }
         .kpi-unit { font-size: 14px; color: var(--text-secondary); font-weight: 500; font-family: var(--font-main); }
 
         /* Aura IA Chat */
@@ -483,17 +536,34 @@
         <!-- Main Content -->
         <main id="main-content" class="main-content">
             <header class="topbar">
-                <button id="menu-toggle" class="menu-toggle" aria-label="Toggle Menu">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <div class="topbar-actions">
-                    <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">
-                        <i class="fa-solid fa-sun"></i>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button id="menu-toggle" class="menu-toggle" aria-label="Toggle Menu">
+                        <i class="fa-solid fa-bars"></i>
                     </button>
-                    <div class="btn-icon" style="background: var(--accent-teal-dim); color: var(--accent-teal);">
-                        <i class="fa-solid fa-user"></i>
+                    <div class="header-search">
+                        <i class="fa-solid fa-magnifying-glass" style="color: var(--text-secondary)"></i>
+                        <input type="text" id="global-search" placeholder="Buscar plantas, tareas, espacios..." autocomplete="off">
                     </div>
                 </div>
+                
+                <div class="topbar-actions">
+                    <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <button class="btn-icon" style="position: relative;">
+                        <i class="fa-solid fa-bell"></i>
+                        <span style="position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--status-critical); border-radius: 50%;"></span>
+                    </button>
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 6px 16px 6px 6px; background: var(--bg-surface-hover); border-radius: var(--radius-pill); cursor: pointer;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-teal); color: #000; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                            MG
+                        </div>
+                        <span style="font-size: 13px; font-weight: 500;">Master Grower</span>
+                    </div>
+                </div>
+                
+                <!-- Search Results Dropdown -->
+                <div id="search-results" class="search-results-dropdown"></div>
             </header>
 
             <!-- View Container -->
@@ -1480,6 +1550,74 @@
                     localStorage.removeItem(STORAGE_KEY);
                     location.reload();
                 }
+            },
+
+            handleSearch(e) {
+                const query = e.target.value.toLowerCase().trim();
+                const dropdown = document.getElementById('search-results');
+                
+                if (query.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                let resultsHtml = '';
+                let hasResults = false;
+
+                // Search Plants
+                const foundPlants = state.plants.filter(p => p.nombre.toLowerCase().includes(query) || p.variedad.toLowerCase().includes(query));
+                if (foundPlants.length > 0) {
+                    hasResults = true;
+                    foundPlants.forEach(p => {
+                        resultsHtml += `
+                        <div class="search-result-item" onclick="handlers.viewPlantDetail('${p.id}'); document.getElementById('search-results').style.display='none'; document.getElementById('global-search').value='';">
+                            <div class="search-result-icon"><i class="fa-solid fa-seedling"></i></div>
+                            <div class="search-result-text">
+                                <h4>${p.nombre}</h4>
+                                <p>Planta • ${p.variedad}</p>
+                            </div>
+                        </div>`;
+                    });
+                }
+
+                // Search Spaces
+                const foundSpaces = state.spaces.filter(s => s.nombre.toLowerCase().includes(query));
+                if (foundSpaces.length > 0) {
+                    hasResults = true;
+                    foundSpaces.forEach(s => {
+                        resultsHtml += `
+                        <div class="search-result-item" onclick="window.location.hash='plants'; handlers.viewSpace('${s.id}'); document.getElementById('search-results').style.display='none'; document.getElementById('global-search').value='';">
+                            <div class="search-result-icon" style="color: var(--accent-blue); background: var(--status-info-dim);"><i class="fa-solid fa-layer-group"></i></div>
+                            <div class="search-result-text">
+                                <h4>${s.nombre}</h4>
+                                <p>Espacio</p>
+                            </div>
+                        </div>`;
+                    });
+                }
+
+                // Search Tasks
+                const foundTasks = state.tasks.filter(t => t.titulo.toLowerCase().includes(query));
+                if (foundTasks.length > 0) {
+                    hasResults = true;
+                    foundTasks.forEach(t => {
+                        resultsHtml += `
+                        <div class="search-result-item" onclick="window.location.hash='tasks'; document.getElementById('search-results').style.display='none'; document.getElementById('global-search').value='';">
+                            <div class="search-result-icon" style="color: var(--status-alert); background: var(--status-alert-dim);"><i class="fa-solid fa-check"></i></div>
+                            <div class="search-result-text">
+                                <h4>${t.titulo}</h4>
+                                <p>Tarea</p>
+                            </div>
+                        </div>`;
+                    });
+                }
+
+                if (!hasResults) {
+                    resultsHtml = `<div style="padding: 16px; text-align: center; color: var(--text-secondary); font-size: 13px;">No se encontraron resultados para "${query}".</div>`;
+                }
+
+                dropdown.innerHTML = resultsHtml;
+                dropdown.style.display = 'block';
             }
         };
 
@@ -1532,6 +1670,23 @@
                     document.querySelectorAll('.modal-overlay.active').forEach(modal => {
                         modal.classList.remove('active');
                     });
+                    const dropdown = document.getElementById('search-results');
+                    if (dropdown) dropdown.style.display = 'none';
+                }
+            });
+
+            // Search Handlers
+            const searchInput = document.getElementById('global-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', handlers.handleSearch);
+                searchInput.addEventListener('focus', handlers.handleSearch);
+            }
+
+            // Close search dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.header-search') && !e.target.closest('.search-results-dropdown')) {
+                    const dropdown = document.getElementById('search-results');
+                    if (dropdown) dropdown.style.display = 'none';
                 }
             });
         }
