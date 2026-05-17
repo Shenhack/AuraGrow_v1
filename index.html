@@ -1013,8 +1013,8 @@
                             <td style="font-weight: 500; color: var(--text-primary);" onclick="handlers.viewPlantDetail('${p.id}')">${p.nombre}</td>
                             <td onclick="handlers.viewPlantDetail('${p.id}')">${p.variedad}</td>
                             <td onclick="handlers.viewPlantDetail('${p.id}')">${this._badgeEtapa(p.etapa)}</td>
-                            <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.getDays(p.fechaInicio)} d</td>
-                            <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${this.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
+                            <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.daysBetween(p.fechaInicio, new Date())} d</td>
+                            <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${utils.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
                         </tr>
                         `).join('')}
                     </tbody>
