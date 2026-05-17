@@ -992,6 +992,16 @@
             },
 
             renderPlantsTable(plants) {
+                // Diccionario de Emojis según etapa
+                const iconosEtapa = {
+                    'germinación': '🌰', 'germinacion': '🌰',
+                    'plántula': '🌱', 'plantula': '🌱',
+                    'vegetativo': '🌿',
+                    'floración': '🌸', 'floracion': '🌸',
+                    'secado': '🍂',
+                    'curado': '🏺'
+                };
+
                 return `
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
@@ -1005,18 +1015,24 @@
                         </tr>
                     </thead>
                     <tbody>
-                        ${plants.map(p => `
-                        <tr style="cursor: pointer;">
-                            <td style="text-align: center;" onclick="event.stopPropagation()">
-                                <input type="checkbox" class="plant-checkbox" value="${p.id}" onchange="handlers.updateBatchButton()">
-                            </td>
-                            <td style="font-weight: 500; color: var(--text-primary);" onclick="handlers.viewPlantDetail('${p.id}')">${p.nombre}</td>
-                            <td onclick="handlers.viewPlantDetail('${p.id}')">${p.variedad}</td>
-                            <td onclick="handlers.viewPlantDetail('${p.id}')">${this._badgeEtapa(p.etapa)}</td>
-                            <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.daysBetween(p.fechaInicio, new Date())} d</td>
-                            <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${utils.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
-                        </tr>
-                        `).join('')}
+                        ${plants.map(p => {
+                            const emoji = iconosEtapa[p.etapa.toLowerCase()] || '🪴';
+                            return `
+                            <tr style="cursor: pointer;">
+                                <td style="text-align: center;" onclick="event.stopPropagation()">
+                                    <input type="checkbox" class="plant-checkbox" value="${p.id}" onchange="handlers.updateBatchButton()">
+                                </td>
+                                <td style="font-weight: 500; color: var(--text-primary);" onclick="handlers.viewPlantDetail('${p.id}')">
+                                    <span style="font-size: 1.4rem; margin-right: 6px; vertical-align: middle;">${emoji}</span>
+                                    ${p.nombre}
+                                </td>
+                                <td onclick="handlers.viewPlantDetail('${p.id}')">${p.variedad}</td>
+                                <td onclick="handlers.viewPlantDetail('${p.id}')">${this._badgeEtapa(p.etapa)}</td>
+                                <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.daysBetween(p.fechaInicio, new Date())} d</td>
+                                <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${utils.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
+                            </tr>
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
                 <div id="batch-action-container" style="display: none; padding: 16px; background: var(--bg-surface-hover); border-top: 1px solid var(--border-color); text-align: right; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
