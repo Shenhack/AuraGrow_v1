@@ -1269,9 +1269,15 @@
                 `;
 
                 const plantForm = `
-                    <div class="form-group">
-                        <label class="form-label">Nombre Identificador</label>
-                        <input type="text" class="form-control" name="nombre" required>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 3;">
+                            <label class="form-label">Nombre Identificador</label>
+                            <input type="text" class="form-control" name="nombre" placeholder="Ej: OG Kush" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" name="cantidad" value="1" min="1" max="100" required>
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -1504,7 +1510,25 @@
                     render.setupModals();
                     saveState();
                 } else if (modalId === 'plant-modal') {
-                    state.plants.unshift({ id: utils.generateId(), nombre: data.nombre, variedad: data.variedad, etapa: data.etapa, sistema: data.sistema, spaceId: data.spaceId, fechaInicio: new Date().toISOString(), estado: 'activa' });
+                    const cantidad = parseInt(data.cantidad) || 1;
+                    
+                    for (let i = 0; i < cantidad; i++) {
+                        let nombrePlanta = data.nombre;
+                        if (cantidad > 1) {
+                            nombrePlanta = `${data.nombre} #${i + 1}`;
+                        }
+                        
+                        state.plants.unshift({ 
+                            id: utils.generateId(), 
+                            nombre: nombrePlanta, 
+                            variedad: data.variedad, 
+                            etapa: data.etapa, 
+                            sistema: data.sistema, 
+                            spaceId: data.spaceId, 
+                            fechaInicio: new Date().toISOString(), 
+                            estado: 'activa' 
+                        });
+                    }
                     render.setupModals();
                     saveState();
                 } else if (modalId === 'log-modal') {
