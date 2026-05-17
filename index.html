@@ -766,6 +766,22 @@
                 const recentAlerts = state.logs.filter(l => l.plantId === plant.id && l.tipo === 'incidente');
                 if (recentAlerts.length > 0) return 'status-alert';
                 return 'status-optimal';
+            },
+            getLunarPhase() {
+                // Reference New Moon: Jan 6, 2000 18:14 UTC
+                const refDate = new Date(Date.UTC(2000, 0, 6, 18, 14, 0));
+                const now = new Date();
+                const daysSinceNew = (now.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24);
+                const cycle = daysSinceNew % 29.530588;
+                
+                if (cycle < 3.7) return { name: 'Luna Nueva', emoji: '🌑' };
+                if (cycle < 7.4) return { name: 'Cuarto Creciente', emoji: '🌒' };
+                if (cycle < 11.1) return { name: 'Cuarto Creciente', emoji: '🌓' };
+                if (cycle < 14.8) return { name: 'Gibosa Creciente', emoji: '🌔' };
+                if (cycle < 18.5) return { name: 'Luna Llena', emoji: '🌕' };
+                if (cycle < 22.1) return { name: 'Gibosa Menguante', emoji: '🌖' };
+                if (cycle < 25.9) return { name: 'Cuarto Menguante', emoji: '🌗' };
+                return { name: 'Cuarto Menguante', emoji: '🌘' };
             }
         };
 
@@ -852,10 +868,52 @@
                 // Fusionar tareas automáticas con tareas manuales
                 const pendingTasks = [...autoTasks, ...state.tasks.filter(t => !t.completada)].slice(0, 5);
                 const recentLogs = state.logs.slice(0, 4);
+                
+                const lunar = utils.getLunarPhase();
+
+                // Lógica de Sugerencias de Aura
+                let auraSuggestions = [];
+                
+                // 1. Plantas en floración > 42 días
+                activePlants.filter(p => (p.etapa === 'floración' || p.etapa === 'floracion') && utils.daysBetween(p.fechaInicio, now) > 42).forEach(p => {
+                    auraSuggestions.push(`${p.nombre} lleva ${utils.daysBetween(p.fechaInicio, now)} días en floración — revisá tricomas esta semana`);
+                });
+                
+                // 2. Plantas sin logs en 3 días
+                activePlants.forEach(p => {
+                    const lastLog = state.logs.find(l => l.plantId === p.id);
+                    if (!lastLog || utils.daysBetween(lastLog.fecha, now) > 3) {
+                        auraSuggestions.push(`Sin registros recientes en ${p.nombre} — ¿todo bien?`);
+                    }
+                });
+                
+                // 3. Vegetativo sin poda en 14 días
+                activePlants.filter(p => p.etapa === 'vegetativo').forEach(p => {
+                    const lastPoda = state.logs.find(l => l.plantId === p.id && l.tipo === 'poda');
+                    if (!lastPoda || utils.daysBetween(lastPoda.fecha, now) > 14) {
+                        auraSuggestions.push(`${p.nombre} puede estar lista para defoliar`);
+                    }
+                });
+                
+                // 4. VPD elevado
+                const highVpd = state.envRecords.some(e => parseFloat(e.vpd) > 1.4 && utils.daysBetween(e.fecha, now) <= 2);
+                if (highVpd) {
+                    auraSuggestions.push("VPD elevado detectado — revisá temperatura y humedad");
+                }
+                
+                // Limitar a 3 sugerencias para no abrumar
+                auraSuggestions = auraSuggestions.slice(0, 3);
+                
+                const suggestionsHtml = auraSuggestions.length > 0 
+                    ? auraSuggestions.map(s => `<div style="margin-bottom: 8px; font-size: 14px;"><i class="fa-solid fa-circle-dot" style="color: var(--accent-teal); font-size: 8px; margin-right: 8px; vertical-align: middle;"></i>${s}</div>`).join('')
+                    : `<div style="color: var(--text-secondary); font-size: 14px;">Todo parece estar en orden 🌿</div>`;
 
                 return `
-                    <div class="page-header">
+                    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h1 class="page-title">Dashboard</h1>
+                        <span style="font-size: 13px; color: var(--text-secondary); background: var(--bg-surface-hover); padding: 4px 12px; border-radius: var(--radius-pill); display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            ${lunar.emoji} ${lunar.name}
+                        </span>
                     </div>
                     
                     <div class="grid-kpi">
@@ -882,6 +940,13 @@
                             <span class="kpi-label">Sistema General</span>
                             <div class="kpi-value" style="color: var(--status-optimal)">OK</div>
                         </div>
+                    </div>
+
+                    <div class="card" style="border-left: 3px solid var(--accent-teal); padding: 20px 24px; margin-bottom: 24px;">
+                        <div class="section-title">
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-teal)"></i> Sugerencias de Aura
+                        </div>
+                        ${suggestionsHtml}
                     </div>
 
                     <div class="grid-2col">
@@ -1017,13 +1082,25 @@
                     <tbody>
                         ${plants.map(p => {
                             const emoji = iconosEtapa[p.etapa.toLowerCase()] || '🪴';
+                            const pLogs = state.logs.filter(l => l.plantId === p.id).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                            const lastLog = pLogs.length > 0 ? pLogs[0] : null;
+                            let lastLogText = '<span style="color: var(--text-secondary);">Sin registros aún</span>';
+                            if (lastLog) {
+                                const dias = utils.daysBetween(lastLog.fecha, new Date());
+                                const textDias = dias === 0 ? 'hoy' : `hace ${dias} días`;
+                                lastLogText = `Último log: ${textDias} · [${lastLog.tipo}]`;
+                            }
+
                             return `
                             <tr style="cursor: pointer;">
                                 <td style="text-align: center;" onclick="event.stopPropagation()">
                                     <input type="checkbox" class="plant-checkbox" value="${p.id}" onchange="handlers.updateBatchButton()">
                                 </td>
                                 <td style="font-weight: 500; color: var(--text-primary);" onclick="handlers.viewPlantDetail('${p.id}')">
-                                    ${p.nombre}
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <span>${p.nombre}</span>
+                                        <span style="font-size: 12px; color: var(--text-secondary); font-weight: normal;">${lastLogText}</span>
+                                    </div>
                                 </td>
                                 <td onclick="handlers.viewPlantDetail('${p.id}')">${p.variedad}</td>
                                 <td onclick="handlers.viewPlantDetail('${p.id}')" style="text-align: center;">
@@ -1439,31 +1516,75 @@
                 `;
 
                 const plantForm = `
-                    <div class="form-row">
-                        <div class="form-group" style="flex: 3;">
-                            <label class="form-label">Nombre Identificador</label>
-                            <input type="text" class="form-control" name="nombre" placeholder="Ej: OG Kush" required>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label class="form-label">Cantidad</label>
-                            <input type="number" class="form-control" name="cantidad" value="1" min="1" max="100" required>
+                    <style>
+                        #plant-modal .form-actions { display: none; }
+                        .wizard-step { display: none; }
+                        .wizard-step.active { display: block; }
+                        .wizard-progress { display: flex; gap: 4px; margin-bottom: 20px; }
+                        .wizard-segment { height: 4px; flex: 1; background: var(--bg-surface-hover); border-radius: 2px; transition: 0.3s; }
+                        .wizard-segment.active { background: var(--accent-teal); }
+                        .wizard-pill { padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); text-align: center; cursor: pointer; flex: 1; color: var(--text-secondary); transition: 0.2s; user-select: none; }
+                        .wizard-pill.active { background: var(--accent-teal-dim); color: var(--accent-teal); border-color: var(--accent-teal); }
+                    </style>
+                    <div class="wizard-header" style="margin-bottom: 16px;">
+                        <div style="font-size: 12px; color: var(--accent-teal); font-weight: bold; margin-bottom: 8px;" id="wizard-step-label">Paso 1 de 4: Origen</div>
+                        <div class="wizard-progress">
+                            <div class="wizard-segment active" id="prog-1"></div>
+                            <div class="wizard-segment" id="prog-2"></div>
+                            <div class="wizard-segment" id="prog-3"></div>
+                            <div class="wizard-segment" id="prog-4"></div>
                         </div>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Paso 1: Origen -->
+                    <div class="wizard-step active" id="wizard-step-1">
+                        <h3 style="margin-bottom: 16px;">Origen de la Planta</h3>
+                        <input type="hidden" name="origen" id="wizard-origen" value="semilla">
+                        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                            <div class="wizard-pill active" onclick="handlers.setWizardOrigen('semilla', this)">
+                                <i class="fa-solid fa-seedling" style="font-size: 24px; margin-bottom: 8px; display: block;"></i> Semilla
+                            </div>
+                            <div class="wizard-pill" onclick="handlers.setWizardOrigen('clon', this)">
+                                <i class="fa-solid fa-scissors" style="font-size: 24px; margin-bottom: 8px; display: block;"></i> Clon / Esqueje
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <button type="button" class="btn btn-primary" onclick="handlers.wizardNext(1)">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2: Genética -->
+                    <div class="wizard-step" id="wizard-step-2">
+                        <h3 style="margin-bottom: 16px;">Genética e Identificación</h3>
                         <div class="form-group">
                             <label class="form-label">Variedad / Genética</label>
-                            <input type="text" class="form-control" name="variedad" required>
+                            <input type="text" class="form-control" name="variedad" id="wizard-variedad" placeholder="Ej: OG Kush" required>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Etapa Actual</label>
-                            <select class="form-control" name="etapa">
-                                <option value="germinación">Germinación</option>
-                                <option value="vegetativo">Vegetativo</option>
-                                <option value="floración">Floración</option>
-                            </select>
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 3;">
+                                <label class="form-label">Nombre del Ejemplar</label>
+                                <input type="text" class="form-control" name="nombre" id="wizard-nombre" placeholder="Ej: OG Kush #1" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" class="form-control" name="cantidad" value="1" min="1" max="100" required>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 16px;">
+                            <button type="button" class="btn btn-outline" onclick="handlers.wizardPrev(2)"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+                            <button type="button" class="btn btn-primary" onclick="handlers.wizardNext(2)">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
                         </div>
                     </div>
-                    <div class="form-row">
+
+                    <!-- Paso 3: Espacio -->
+                    <div class="wizard-step" id="wizard-step-3">
+                        <h3 style="margin-bottom: 16px;">Ubicación y Sistema</h3>
+                        <div class="form-group">
+                            <label class="form-label">Espacio Asignado</label>
+                            <select class="form-control" name="spaceId" id="wizard-space" required>
+                                ${this.spaceOptions()}
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Sistema</label>
                             <select class="form-control" name="sistema">
@@ -1472,11 +1593,30 @@
                                 <option value="aeropónico">Aeroponía</option>
                             </select>
                         </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 16px;">
+                            <button type="button" class="btn btn-outline" onclick="handlers.wizardPrev(3)"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+                            <button type="button" class="btn btn-primary" onclick="handlers.wizardNext(3)">Siguiente <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Paso 4: Etapa -->
+                    <div class="wizard-step" id="wizard-step-4">
+                        <h3 style="margin-bottom: 16px;">Estado Inicial</h3>
+                        <input type="hidden" name="etapa" id="wizard-etapa" value="germinación">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                            <div class="wizard-pill active" onclick="handlers.setWizardEtapa('germinación', this)">Germinación</div>
+                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('plántula', this)">Plántula</div>
+                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('vegetativo', this)">Vegetativo</div>
+                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('floración', this)">Floración</div>
+                        </div>
                         <div class="form-group">
-                            <label class="form-label">Espacio Asignado</label>
-                            <select class="form-control" name="spaceId" required>
-                                ${this.spaceOptions()}
-                            </select>
+                            <label class="form-label">Fecha de Inicio</label>
+                            <!-- Date picker defaulted in openModal logic, but default to JS Date here just in case -->
+                            <input type="date" class="form-control" name="fecha_inicio" id="wizard-fecha" required>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                            <button type="button" class="btn btn-outline" onclick="handlers.wizardPrev(4)"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+                            <button type="submit" class="btn btn-primary">Guardar Planta <i class="fa-solid fa-check"></i></button>
                         </div>
                     </div>
                 `;
@@ -1637,7 +1777,75 @@
 
             openModal(modalId) {
                 const modal = document.getElementById(modalId);
-                if(modal) modal.classList.add('active');
+                if(modal) {
+                    modal.classList.add('active');
+                    if (modalId === 'plant-modal') {
+                        // Reset wizard
+                        for(let i=1; i<=4; i++) {
+                            const step = document.getElementById(`wizard-step-${i}`);
+                            if(step) step.classList.remove('active');
+                            const prog = document.getElementById(`prog-${i}`);
+                            if(prog) prog.classList.remove('active');
+                        }
+                        document.getElementById('wizard-step-1').classList.add('active');
+                        document.getElementById('prog-1').classList.add('active');
+                        document.getElementById('wizard-step-label').innerText = 'Paso 1 de 4: Origen';
+                        
+                        // Set default date
+                        if (document.getElementById('wizard-fecha')) {
+                            document.getElementById('wizard-fecha').valueAsDate = new Date();
+                        }
+                    }
+                }
+            },
+
+            // --- WIZARD LÓGICA ---
+            wizardNext(currentStep) {
+                // Validación básica
+                if (currentStep === 2) {
+                    if (!document.getElementById('wizard-variedad').value || !document.getElementById('wizard-nombre').value) {
+                        alert('Completa la variedad y el nombre');
+                        return;
+                    }
+                }
+                if (currentStep === 3) {
+                    if (!document.getElementById('wizard-space').value) {
+                        alert('Selecciona un espacio o crea uno primero');
+                        return;
+                    }
+                }
+                
+                document.getElementById(`wizard-step-${currentStep}`).classList.remove('active');
+                document.getElementById(`wizard-step-${currentStep + 1}`).classList.add('active');
+                
+                // Actualizar barra de progreso y título
+                const stepNames = ['Origen', 'Genética', 'Ubicación', 'Estado'];
+                document.getElementById('wizard-step-label').innerText = `Paso ${currentStep + 1} de 4: ${stepNames[currentStep]}`;
+                document.getElementById(`prog-${currentStep + 1}`).classList.add('active');
+            },
+            
+            wizardPrev(currentStep) {
+                document.getElementById(`wizard-step-${currentStep}`).classList.remove('active');
+                document.getElementById(`wizard-step-${currentStep - 1}`).classList.add('active');
+                
+                // Actualizar progreso
+                const stepNames = ['Origen', 'Genética', 'Ubicación', 'Estado'];
+                document.getElementById('wizard-step-label').innerText = `Paso ${currentStep - 1} de 4: ${stepNames[currentStep - 2]}`;
+                document.getElementById(`prog-${currentStep}`).classList.remove('active');
+            },
+            
+            setWizardOrigen(origen, element) {
+                document.getElementById('wizard-origen').value = origen;
+                const parent = element.parentElement;
+                parent.querySelectorAll('.wizard-pill').forEach(el => el.classList.remove('active'));
+                element.classList.add('active');
+            },
+
+            setWizardEtapa(etapa, element) {
+                document.getElementById('wizard-etapa').value = etapa;
+                const parent = element.parentElement;
+                parent.querySelectorAll('.wizard-pill').forEach(el => el.classList.remove('active'));
+                element.classList.add('active');
             },
 
             closeModal(e, modalId, force = false) {
