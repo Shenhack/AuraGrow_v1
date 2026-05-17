@@ -768,20 +768,20 @@
                 return 'status-optimal';
             },
             getLunarPhase() {
-                // Reference New Moon: Jan 6, 2000 18:14 UTC
-                const refDate = new Date(Date.UTC(2000, 0, 6, 18, 14, 0));
+                const known = new Date(2000, 0, 6); // Luna nueva conocida: 6 enero 2000
                 const now = new Date();
-                const daysSinceNew = (now.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24);
-                const cycle = daysSinceNew % 29.530588;
+                const diff = (now - known) / (1000 * 60 * 60 * 24);
+                const cycle = 29.53058867;
+                const age = ((diff % cycle) + cycle) % cycle;
                 
-                if (cycle < 3.7) return { name: 'Luna Nueva', emoji: '🌑' };
-                if (cycle < 7.4) return { name: 'Cuarto Creciente', emoji: '🌒' };
-                if (cycle < 11.1) return { name: 'Cuarto Creciente', emoji: '🌓' };
-                if (cycle < 14.8) return { name: 'Gibosa Creciente', emoji: '🌔' };
-                if (cycle < 18.5) return { name: 'Luna Llena', emoji: '🌕' };
-                if (cycle < 22.1) return { name: 'Gibosa Menguante', emoji: '🌖' };
-                if (cycle < 25.9) return { name: 'Cuarto Menguante', emoji: '🌗' };
-                return { name: 'Cuarto Menguante', emoji: '🌘' };
+                if (age < 1.85)        return { emoji: '🌑', name: 'Luna Nueva' };
+                else if (age < 7.38)   return { emoji: '🌒', name: 'Cuarto Creciente' };
+                else if (age < 11.07)  return { emoji: '🌓', name: 'Cuarto Creciente' };
+                else if (age < 14.77)  return { emoji: '🌔', name: 'Gibosa Creciente' };
+                else if (age < 18.46)  return { emoji: '🌕', name: 'Luna Llena' };
+                else if (age < 22.15)  return { emoji: '🌖', name: 'Gibosa Menguante' };
+                else if (age < 25.84)  return { emoji: '🌗', name: 'Cuarto Menguante' };
+                else                   return { emoji: '🌘', name: 'Luna Menguante' };
             }
         };
 
@@ -909,11 +909,24 @@
                     : `<div style="color: var(--text-secondary); font-size: 14px;">Todo parece estar en orden 🌿</div>`;
 
                 return `
-                    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <h1 class="page-title">Dashboard</h1>
-                        <span style="font-size: 13px; color: var(--text-secondary); background: var(--bg-surface-hover); padding: 4px 12px; border-radius: var(--radius-pill); display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                            ${lunar.emoji} ${lunar.name}
-                        </span>
+                    <div class="page-header" style="align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h1 class="page-title">Dashboard</h1>
+                            <span id="lunar-phase-badge" style="
+                                font-size: 13px;
+                                color: #a1a1aa;
+                                background: #0a0a0a;
+                                border: 1px solid rgba(255,255,255,0.08);
+                                padding: 4px 12px;
+                                border-radius: 9999px;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 6px;
+                                white-space: nowrap;
+                            ">
+                                ${lunar.emoji} ${lunar.name}
+                            </span>
+                        </div>
                     </div>
                     
                     <div class="grid-kpi">
@@ -1324,6 +1337,7 @@
 
             _taskItem(t) {
                 const autoBadge = t.isAuto ? '<span class="badge" style="background: var(--status-alert-dim); color: var(--status-alert);">AUTO</span>' : '';
+                const planBadge = t.isPlan ? '<span class="badge" style="background: rgba(59,130,246,0.1); color: var(--status-info);">PLAN</span>' : '';
                 return `
                     <div class="task-item ${t.completada ? 'completed' : ''}">
                         <div class="checkbox-wrapper">
@@ -1333,7 +1347,7 @@
                                 ${t.isAuto ? 'disabled' : ''}>
                         </div>
                         <div class="task-content">
-                            <div class="task-title">${t.titulo} ${autoBadge}</div>
+                            <div class="task-title">${t.titulo} ${autoBadge} ${planBadge}</div>
                             <div class="task-meta">
                                 <span><i class="fa-regular fa-calendar"></i> ${utils.formatDate(t.fecha)}</span>
                                 ${t.plantId ? `<span><i class="fa-solid fa-tag"></i> ${utils.getPlantName(t.plantId)}</span>` : ''}
@@ -1604,16 +1618,32 @@
                         <h3 style="margin-bottom: 16px;">Estado Inicial</h3>
                         <input type="hidden" name="etapa" id="wizard-etapa" value="germinación">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-                            <div class="wizard-pill active" onclick="handlers.setWizardEtapa('germinación', this)">Germinación</div>
-                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('plántula', this)">Plántula</div>
-                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('vegetativo', this)">Vegetativo</div>
-                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('floración', this)">Floración</div>
+                            <div class="wizard-pill active" onclick="handlers.setWizardEtapa('germinación', this); handlers.renderCultivationPlanPreview();">Germinación</div>
+                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('plántula', this); handlers.renderCultivationPlanPreview();">Plántula</div>
+                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('vegetativo', this); handlers.renderCultivationPlanPreview();">Vegetativo</div>
+                            <div class="wizard-pill" onclick="handlers.setWizardEtapa('floración', this); handlers.renderCultivationPlanPreview();">Floración</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Fecha de Inicio</label>
-                            <!-- Date picker defaulted in openModal logic, but default to JS Date here just in case -->
-                            <input type="date" class="form-control" name="fecha_inicio" id="wizard-fecha" required>
+                            <input type="date" class="form-control" name="fecha_inicio" id="wizard-fecha" required onchange="handlers.renderCultivationPlanPreview()">
                         </div>
+                        
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); font-weight: 500;">
+                                <input type="checkbox" name="generar_plan" id="wizard-generar-plan" onchange="handlers.renderCultivationPlanPreview()" style="width: 18px; height: 18px; accent-color: var(--accent-teal);">
+                                Generar plan de cultivo automático
+                            </label>
+                        </div>
+                        
+                        <div id="wizard-plan-preview" style="display: none; margin-top: 16px; background: #0a0a0a; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; max-height: 200px; overflow-y: auto;">
+                            <div style="font-size: 12px; color: #a1a1aa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">
+                                Plan sugerido
+                            </div>
+                            <div id="wizard-plan-list" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- items -->
+                            </div>
+                        </div>
+
                         <div style="display: flex; justify-content: space-between; margin-top: 24px;">
                             <button type="button" class="btn btn-outline" onclick="handlers.wizardPrev(4)"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
                             <button type="submit" class="btn btn-primary">Guardar Planta <i class="fa-solid fa-check"></i></button>
@@ -1848,6 +1878,78 @@
                 element.classList.add('active');
             },
 
+            renderCultivationPlanPreview() {
+                const isChecked = document.getElementById('wizard-generar-plan') ? document.getElementById('wizard-generar-plan').checked : false;
+                const previewDiv = document.getElementById('wizard-plan-preview');
+                const listDiv = document.getElementById('wizard-plan-list');
+                
+                if (!previewDiv || !listDiv) return;
+
+                if (!isChecked) {
+                    previewDiv.style.display = 'none';
+                    return;
+                }
+                
+                const etapa = document.getElementById('wizard-etapa').value.toLowerCase();
+                const fechaInput = document.getElementById('wizard-fecha').value;
+                if (!fechaInput) return;
+                
+                const plan = this._generatePlanItems(etapa);
+                if (plan.length === 0) {
+                    previewDiv.style.display = 'none';
+                    return;
+                }
+                
+                const baseDate = new Date(fechaInput + 'T12:00:00'); // Evita timezone issues
+                const formatter = new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short' });
+                
+                listDiv.innerHTML = plan.map(item => {
+                    const taskDate = new Date(baseDate);
+                    taskDate.setDate(taskDate.getDate() + item.dias);
+                    return `
+                        <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                            <span style="color: #10b981; min-width: 60px; font-variant-numeric: tabular-nums;">${formatter.format(taskDate)}</span>
+                            <span style="color: #f8f8f8;">${item.accion}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                previewDiv.style.display = 'block';
+            },
+            
+            _generatePlanItems(etapa) {
+                if (etapa === 'germinación' || etapa === 'germinacion') {
+                    return [
+                        { dias: 0, accion: 'Germinación - Humedad alta, 18/6 luz' },
+                        { dias: 7, accion: 'Trasplante a sustrato definitivo' },
+                        { dias: 14, accion: 'Inicio vegetativo — bajar humedad a 60%' },
+                        { dias: 35, accion: 'Revisión de sexo si semilla regular' },
+                        { dias: 42, accion: 'Cambio a floración — 12/12' },
+                        { dias: 49, accion: 'Primera defoliación de floración' },
+                        { dias: 70, accion: 'Lavado de raíces / flush' },
+                        { dias: 77, accion: 'Cosecha estimada — revisar tricomas' }
+                    ];
+                } else if (etapa === 'vegetativo') {
+                    return [
+                        { dias: 0, accion: 'Inicio vegetativo activo' },
+                        { dias: 7, accion: 'Primer topping o LST si aplica' },
+                        { dias: 21, accion: 'Defoliación leve' },
+                        { dias: 28, accion: 'Cambio a floración — 12/12' },
+                        { dias: 35, accion: 'Primera defoliación de floración' },
+                        { dias: 56, accion: 'Lavado de raíces / flush' },
+                        { dias: 63, accion: 'Cosecha estimada — revisar tricomas' }
+                    ];
+                } else if (etapa === 'floración' || etapa === 'floracion') {
+                    return [
+                        { dias: 0, accion: 'Inicio de floración — 12/12' },
+                        { dias: 7, accion: 'Defoliación de apertura' },
+                        { dias: 42, accion: 'Lavado de raíces / flush' },
+                        { dias: 49, accion: 'Cosecha estimada — revisar tricomas' }
+                    ];
+                }
+                return [];
+            },
+
             closeModal(e, modalId, force = false) {
                 // Close if forced (X button or Cancel) OR clicked exactly on overlay
                 if(force || (e && e.target.id === modalId)) {
@@ -1889,6 +1991,7 @@
                     saveState();
                 } else if (modalId === 'plant-modal') {
                     const cantidad = parseInt(data.cantidad) || 1;
+                    const generarPlan = document.getElementById('wizard-generar-plan') ? document.getElementById('wizard-generar-plan').checked : false;
                     
                     for (let i = 0; i < cantidad; i++) {
                         let nombrePlanta = data.nombre;
@@ -1896,16 +1999,38 @@
                             nombrePlanta = `${data.nombre} #${i + 1}`;
                         }
                         
+                        const nuevaPlantaId = utils.generateId();
                         state.plants.unshift({ 
-                            id: utils.generateId(), 
+                            id: nuevaPlantaId, 
                             nombre: nombrePlanta, 
                             variedad: data.variedad, 
                             etapa: data.etapa, 
                             sistema: data.sistema, 
                             spaceId: data.spaceId, 
-                            fechaInicio: new Date().toISOString(), 
+                            fechaInicio: data.fecha_inicio || new Date().toISOString(), 
                             estado: 'activa' 
                         });
+
+                        // Generar plan
+                        if (generarPlan) {
+                            const planItems = handlers._generatePlanItems(data.etapa.toLowerCase());
+                            const baseDate = new Date((data.fecha_inicio || new Date().toISOString().split('T')[0]) + 'T12:00:00');
+                            planItems.forEach(item => {
+                                const taskDate = new Date(baseDate);
+                                taskDate.setDate(taskDate.getDate() + item.dias);
+                                const esCosecha = item.accion.toLowerCase().includes('cosecha');
+                                
+                                state.tasks.push({
+                                    id: utils.generateId(),
+                                    titulo: `${nombrePlanta} — ${item.accion}`,
+                                    fecha: taskDate.toISOString().split('T')[0],
+                                    prioridad: esCosecha ? 'alta' : 'media',
+                                    completada: false,
+                                    plantId: nuevaPlantaId,
+                                    isPlan: true
+                                });
+                            });
+                        }
                     }
                     render.setupModals();
                     saveState();
