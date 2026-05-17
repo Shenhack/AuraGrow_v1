@@ -15,10 +15,10 @@
         /* === CSS VARIABLES === */
         :root, [data-theme="dark"], [data-theme="light"] {
             /* Color Palette */
-            --bg-main: #050505;
-            --bg-surface: #111111;
-            --bg-surface-hover: #1a1a1a;
-            --bg-surface-active: #222222;
+            --bg-main: #000000;
+            --bg-surface: #050505;
+            --bg-surface-hover: #0a0a0a;
+            --bg-surface-active: #141414;
             
             --border-color: rgba(255, 255, 255, 0.08);
             --border-light: rgba(255, 255, 255, 0.15);
@@ -527,6 +527,9 @@
                 <a href="#aura-chat" class="nav-item" data-route="aura-chat">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Aura IA
                 </a>
+                <a href="#settings" class="nav-item" data-route="settings" style="margin-top: auto;">
+                    <i class="fa-solid fa-gear"></i> Configuración
+                </a>
             </nav>
         </aside>
         
@@ -607,6 +610,65 @@
                 return true;
             }
             return false;
+        }
+
+        /* =========================================================================
+           PWA & OFFLINE SUPPORT (Blob Injection)
+           ========================================================================= */
+        function initPWA() {
+            const manifest = {
+                name: "AuraGrow Professional",
+                short_name: "AuraGrow",
+                description: "Gestión de Cultivo Offline-First",
+                display: "standalone",
+                background_color: "#000000",
+                theme_color: "#10b981",
+                start_url: ".",
+                icons: [{
+                    src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzEwYjk4MSIvPjwvc3ZnPg==",
+                    sizes: "192x192",
+                    type: "image/svg+xml"
+                }]
+            };
+            
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestUrl;
+            document.head.appendChild(link);
+
+            const swCode = `
+                const CACHE_NAME = 'auragrow-offline-v1';
+                self.addEventListener('install', event => self.skipWaiting());
+                self.addEventListener('activate', event => event.waitUntil(clients.claim()));
+                self.addEventListener('fetch', event => {
+                    event.respondWith(
+                        caches.match(event.request).then(response => {
+                            return response || fetch(event.request).catch(() => new Response('Offline'));
+                        })
+                    );
+                });
+            `;
+            
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(swUrl)
+                    .then(reg => console.log('AuraGrow PWA Offline-Ready'))
+                    .catch(err => console.error('Error registrando ServiceWorker:', err));
+            }
+        }
+
+        function initApp() {
+            const hadData = loadState();
+            if (!hadData) {
+                loadSeedData();
+            }
+            initPWA();
+            render.setupModals();
+            router.init();
         }
 
         /* =========================================================================
@@ -727,6 +789,7 @@
                     case 'metrics': html = this.metricsView(); break;
                     case 'plant-detail': html = this.plantDetailView(); break;
                     case 'aura-chat': html = this.auraChatView(); break;
+                    case 'settings': html = this.settingsView(); break;
                     default: html = this.dashboardView();
                 }
                 
@@ -735,11 +798,59 @@
             },
 
             dashboardView() {
-                const latestEnv = state.envRecords[0] || {};
                 const activePlants = state.plants.filter(p => p.estado === 'activa');
                 const vegCount = activePlants.filter(p => p.etapa === 'vegetativo').length;
-                const floCount = activePlants.filter(p => p.etapa === 'floración').length;
-                const pendingTasks = state.tasks.filter(t => !t.completada).slice(0, 3);
+                const floCount = activePlants.filter(p => p.etapa === 'floración' || p.etapa === 'floracion').length;
+                
+                // KPI 1: CALCULAR ALERTAS (VPD Amarillo o Rojo)
+                let alertasCount = 0;
+                activePlants.forEach(p => {
+                    const logsPlant = state.logs.filter(l => l.plantId === p.id && l.tipo === 'medicion');
+                    if (logsPlant.length > 0) {
+                        const lastLog = logsPlant[0];
+                        const vpdMatch = lastLog.nota.match(/VPD:\s*([0-9.]+)kPa/);
+                        if (vpdMatch) {
+                            const vpd = parseFloat(vpdMatch[1]);
+                            const color = handlers.evaluarClima(vpd, p.etapa);
+                            if (color === 'var(--status-alert)' || color === 'var(--status-critical)') {
+                                alertasCount++;
+                            }
+                        }
+                    }
+                });
+
+                // KPI 2: AUTOGENERAR TAREAS DE RIEGO (Lógica 72h / 3 Días)
+                let autoTasks = [];
+                const now = new Date();
+                activePlants.forEach(p => {
+                    if (p.etapa === 'vegetativo' || p.etapa.includes('flor')) {
+                        const lastRiego = state.logs.find(l => l.plantId === p.id && l.tipo === 'riego');
+                        let needsWater = false;
+                        
+                        if (!lastRiego) {
+                            needsWater = true; 
+                        } else {
+                            const diffTime = Math.abs(now - new Date(lastRiego.fecha));
+                            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                            if (diffDays >= 3) needsWater = true;
+                        }
+                        
+                        if (needsWater) {
+                            autoTasks.push({
+                                id: 'auto_' + p.id,
+                                titulo: `Regar ${p.nombre}`,
+                                fecha: now.toISOString(),
+                                prioridad: 'alta',
+                                completada: false,
+                                plantId: p.id,
+                                isAuto: true
+                            });
+                        }
+                    }
+                });
+
+                // Fusionar tareas automáticas con tareas manuales
+                const pendingTasks = [...autoTasks, ...state.tasks.filter(t => !t.completada)].slice(0, 5);
                 const recentLogs = state.logs.slice(0, 4);
 
                 return `
@@ -749,40 +860,40 @@
                     
                     <div class="grid-kpi">
                         <div class="card kpi-card">
-                            <span class="kpi-label">VPD Actual</span>
-                            <div class="kpi-value" style="color: var(--status-optimal)">${latestEnv.vpd || '--'} <span class="kpi-unit">kPa</span></div>
-                        </div>
-                        <div class="card kpi-card">
-                            <span class="kpi-label">Temperatura</span>
-                            <div class="kpi-value">${latestEnv.temperatura || '--'} <span class="kpi-unit">°C</span></div>
-                        </div>
-                        <div class="card kpi-card">
-                            <span class="kpi-label">Humedad</span>
-                            <div class="kpi-value">${latestEnv.humedad || '--'} <span class="kpi-unit">%</span></div>
-                        </div>
-                        <div class="card kpi-card">
                             <span class="kpi-label">Plantas Activas</span>
-                            <div class="kpi-value">${activePlants.length} <span class="kpi-unit">total</span></div>
+                            <div class="kpi-value" id="kpi-plants">${activePlants.length}</div>
                             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
                                 <span class="badge badge-veg">${vegCount} Veg</span>
                                 <span class="badge badge-flower">${floCount} Flo</span>
                             </div>
+                        </div>
+                        <div class="card kpi-card">
+                            <span class="kpi-label">Alertas Ambientales</span>
+                            <div class="kpi-value" style="color: ${alertasCount > 0 ? 'var(--status-critical)' : 'var(--status-optimal)'}">
+                                ${alertasCount} <span class="kpi-unit">plantas</span>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Basado en VPD de Bitácora</div>
+                        </div>
+                        <div class="card kpi-card">
+                            <span class="kpi-label">Tareas Automáticas</span>
+                            <div class="kpi-value">${autoTasks.length} <span class="kpi-unit">sugeridas</span></div>
+                        </div>
+                        <div class="card kpi-card">
+                            <span class="kpi-label">Sistema General</span>
+                            <div class="kpi-value" style="color: var(--status-optimal)">OK</div>
                         </div>
                     </div>
 
                     <div class="grid-2col">
                         <div class="card">
                             <div class="section-title">
-                                <i class="fa-solid fa-list-check" style="color: var(--accent-teal)"></i> Tareas de Hoy
+                                <i class="fa-solid fa-list-check" style="color: var(--accent-teal)"></i> Próximas Tareas
                             </div>
                             ${pendingTasks.length > 0 ? `
                                 <div class="task-list">
                                     ${pendingTasks.map(t => this._taskItem(t)).join('')}
                                 </div>
-                            ` : `<div class="empty-state">No hay tareas pendientes para hoy.</div>`}
-                            <div style="margin-top: 16px; text-align: right;">
-                                <a href="#tasks" class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">Ver todas</a>
-                            </div>
+                            ` : `<div class="empty-state">No hay tareas pendientes.</div>`}
                         </div>
 
                         <div class="card">
@@ -882,9 +993,10 @@
 
             renderPlantsTable(plants) {
                 return `
-                <table style="width: 100%;">
+                <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr>
+                            <th style="width: 40px; text-align: center;"><input type="checkbox" onchange="handlers.toggleAllPlants(event)"></th>
                             <th>Nombre</th>
                             <th>Variedad</th>
                             <th>Etapa</th>
@@ -894,21 +1006,26 @@
                     </thead>
                     <tbody>
                         ${plants.map(p => `
-                        <tr style="cursor: pointer;" onclick="handlers.viewPlantDetail('${p.id}')">
-                            <td style="font-weight: 500; color: var(--text-primary);">${p.nombre}</td>
-                            <td>${p.variedad}</td>
-                            <td>${this._badgeEtapa(p.etapa)}</td>
-                            <td>${utils.daysBetween(p.fechaInicio, new Date())} d</td>
-                            <td>
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <div class="status-dot ${utils.getPlantStatusColor(p)}"></div>
-                                    <span style="text-transform: capitalize;">${p.estado}</span>
-                                </div>
+                        <tr style="cursor: pointer;">
+                            <td style="text-align: center;" onclick="event.stopPropagation()">
+                                <input type="checkbox" class="plant-checkbox" value="${p.id}" onchange="handlers.updateBatchButton()">
                             </td>
+                            <td style="font-weight: 500; color: var(--text-primary);" onclick="handlers.viewPlantDetail('${p.id}')">${p.nombre}</td>
+                            <td onclick="handlers.viewPlantDetail('${p.id}')">${p.variedad}</td>
+                            <td onclick="handlers.viewPlantDetail('${p.id}')">${this._badgeEtapa(p.etapa)}</td>
+                            <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.getDays(p.fechaInicio)} d</td>
+                            <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${this.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
                         </tr>
                         `).join('')}
                     </tbody>
-                </table>`;
+                </table>
+                <div id="batch-action-container" style="display: none; padding: 16px; background: var(--bg-surface-hover); border-top: 1px solid var(--border-color); text-align: right; border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+                    <span id="batch-count" style="margin-right: 16px; font-weight: bold;"></span>
+                    <button class="btn btn-primary" onclick="handlers.openBatchLogModal()">
+                        <i class="fa-solid fa-bolt"></i> Registro en Lote
+                    </button>
+                </div>
+                `;
             },
 
             plantDetailView() {
@@ -1109,25 +1226,58 @@
             },
 
             _taskItem(t) {
+                const autoBadge = t.isAuto ? '<span class="badge" style="background: var(--status-alert-dim); color: var(--status-alert);">AUTO</span>' : '';
                 return `
                     <div class="task-item ${t.completada ? 'completed' : ''}">
                         <div class="checkbox-wrapper">
                             <input type="checkbox" class="custom-checkbox" 
                                 ${t.completada ? 'checked' : ''} 
-                                onchange="handlers.toggleTask('${t.id}')">
+                                onchange="handlers.toggleTask('${t.id}')"
+                                ${t.isAuto ? 'disabled' : ''}>
                         </div>
                         <div class="task-content">
-                            <div class="task-title">${t.titulo}</div>
+                            <div class="task-title">${t.titulo} ${autoBadge}</div>
                             <div class="task-meta">
-                                <span class="priority-${t.prioridad}">
-                                    <i class="fa-solid ${t.prioridad==='alta'?'fa-flag':'fa-circle'}"></i> 
-                                    ${t.prioridad.toUpperCase()}
-                                </span>
                                 <span><i class="fa-regular fa-calendar"></i> ${utils.formatDate(t.fecha)}</span>
                                 ${t.plantId ? `<span><i class="fa-solid fa-tag"></i> ${utils.getPlantName(t.plantId)}</span>` : ''}
                             </div>
                         </div>
                     </div>
+                `;
+            },
+
+            settingsView() {
+                return `
+                <div class="page-header">
+                    <h1 class="page-title">Configuración y Respaldo</h1>
+                </div>
+                <div class="card" style="background: var(--bg-surface); border-color: var(--bg-surface-active);">
+                    <div class="section-title">
+                        <i class="fa-solid fa-database" style="color: var(--accent-teal)"></i> Privacidad y Datos Locales
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
+                        Tus datos te pertenecen. AuraGrow funciona 100% offline y tus registros se guardan únicamente en tu dispositivo actual.
+                    </p>
+                    
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="handlers.exportarDatos()">
+                            <i class="fa-solid fa-download"></i> Exportar Respaldo (JSON)
+                        </button>
+                        
+                        <div style="position: relative;">
+                            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="handlers.importarDatos(event)">
+                            <button class="btn btn-outline" onclick="document.getElementById('import-file').click()" style="color: var(--status-alert); border-color: var(--status-alert);">
+                                <i class="fa-solid fa-upload"></i> Importar Respaldo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <button class="btn btn-outline" onclick="handlers.resetData()" style="color: var(--status-critical); border-color: var(--status-critical);">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Formatear Base de Datos Local
+                        </button>
+                    </div>
+                </div>
                 `;
             },
 
@@ -1544,14 +1694,23 @@
                         notaAdicional = `[Dosis: ${data.notas_nutrientes}] ${notaAdicional}`;
                     }
 
-                    state.logs.unshift({ 
-                        id: utils.generateId(), 
-                        plantId: data.plantId, 
-                        tipo: tipo.toLowerCase(), 
-                        fecha: new Date().toISOString(), 
-                        nota: notaAdicional,
-                        foto: data.fotoData || null
+                    const isBatch = (data.plantId === 'BATCH' || document.getElementById('log_planta_id').disabled);
+                    const plantIds = isBatch ? (state.batchPlantIds || []) : [data.plantId];
+                    
+                    plantIds.forEach(pId => {
+                        state.logs.unshift({ 
+                            id: utils.generateId(), 
+                            plantId: pId, 
+                            tipo: tipo.toLowerCase(), 
+                            fecha: new Date().toISOString(), 
+                            nota: notaAdicional,
+                            foto: data.fotoData || null
+                        });
                     });
+
+                    // Reset Batch State
+                    document.getElementById('log_planta_id').disabled = false;
+                    state.batchPlantIds = [];
                     // Limpiar el preview para el proximo uso
                     document.getElementById('log-photo-data').value = '';
                     document.getElementById('log-photo-preview').style.display = 'none';
@@ -1569,6 +1728,91 @@
                 form.reset();
                 this.closeModal(null, modalId, true);
                 render.app();
+            },
+
+            toggleAllPlants(e) {
+                const checked = e.target.checked;
+                const checkboxes = document.querySelectorAll('.plant-checkbox');
+                checkboxes.forEach(cb => cb.checked = checked);
+                this.updateBatchButton();
+            },
+
+            updateBatchButton() {
+                const count = document.querySelectorAll('.plant-checkbox:checked').length;
+                const container = document.getElementById('batch-action-container');
+                const countText = document.getElementById('batch-count');
+                if (count >= 2) {
+                    container.style.display = 'block';
+                    countText.textContent = `${count} plantas seleccionadas`;
+                } else {
+                    container.style.display = 'none';
+                }
+            },
+
+            openBatchLogModal() {
+                const checkboxes = document.querySelectorAll('.plant-checkbox:checked');
+                const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+                if (selectedIds.length < 2) return;
+                
+                state.batchPlantIds = selectedIds;
+                
+                const plantSelect = document.getElementById('log_planta_id');
+                if (!document.getElementById('opt-batch')) {
+                    const opt = document.createElement('option');
+                    opt.id = 'opt-batch';
+                    opt.value = 'BATCH';
+                    plantSelect.insertBefore(opt, plantSelect.firstChild);
+                }
+                document.getElementById('opt-batch').textContent = `Lote (${selectedIds.length} plantas)`;
+                plantSelect.value = 'BATCH';
+                plantSelect.disabled = true;
+                
+                this.openModal('log-modal');
+            },
+
+            exportarDatos() {
+                const dataStr = JSON.stringify(state, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `auragrow_backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+
+            importarDatos(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                if (confirm("⚠️ ADVERTENCIA CRÍTICA: Vas a importar un archivo de respaldo. Esto BORRARÁ e intercambiará TODO tu cultivo actual. ¿Estás absolutamente seguro?")) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const parsed = JSON.parse(e.target.result);
+                            if (parsed && (parsed.plants || parsed.spaces)) {
+                                Object.assign(state, parsed);
+                                saveState();
+                                alert("✅ Datos importados correctamente. La aplicación se recargará.");
+                                location.reload();
+                            } else {
+                                alert("❌ El archivo no parece ser un respaldo válido de AuraGrow.");
+                            }
+                        } catch (error) {
+                            alert("❌ Error al leer el archivo JSON.");
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+                event.target.value = "";
+            },
+
+            resetData() {
+                if (confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR TODOS LOS DATOS LOCALES? Esta acción no se puede deshacer.")) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }
             },
 
             openMoveModal() {
