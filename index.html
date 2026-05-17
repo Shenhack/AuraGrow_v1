@@ -1023,11 +1023,15 @@
                                     <input type="checkbox" class="plant-checkbox" value="${p.id}" onchange="handlers.updateBatchButton()">
                                 </td>
                                 <td style="font-weight: 500; color: var(--text-primary);" onclick="handlers.viewPlantDetail('${p.id}')">
-                                    <span style="font-size: 1.4rem; margin-right: 6px; vertical-align: middle;">${emoji}</span>
                                     ${p.nombre}
                                 </td>
                                 <td onclick="handlers.viewPlantDetail('${p.id}')">${p.variedad}</td>
-                                <td onclick="handlers.viewPlantDetail('${p.id}')">${this._badgeEtapa(p.etapa)}</td>
+                                <td onclick="handlers.viewPlantDetail('${p.id}')" style="text-align: center;">
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                        <span style="font-size: 1.4rem;">${emoji}</span>
+                                        ${this._badgeEtapa(p.etapa)}
+                                    </div>
+                                </td>
                                 <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.daysBetween(p.fechaInicio, new Date())} d</td>
                                 <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${utils.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
                             </tr>
