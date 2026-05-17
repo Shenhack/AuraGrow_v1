@@ -992,8 +992,9 @@
                     const space = state.spaces.find(s => s.id === state.selectedSpaceId);
                     if (!space) return this.backToSpaces();
                     
-                    const spacePlants = state.plants.filter(p => p.spaceId === space.id);
-                    const canDelete = spacePlants.length === 0;
+                    const tab = state.plantsTab || 'activas';
+                    const spacePlants = state.plants.filter(p => p.spaceId === space.id && (tab === 'activas' ? p.estado !== 'Cosechada' : p.estado === 'Cosechada'));
+                    const canDelete = state.plants.filter(p => p.spaceId === space.id).length === 0;
 
                     let html = `
                     <div class="page-header">
@@ -1010,7 +1011,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 12px;">
+                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <select class="form-control" style="width: auto; padding: 6px 12px;" onchange="handlers.setPlantsTab(this.value)">
+                                <option value="activas" ${!state.plantsTab || state.plantsTab === 'activas' ? 'selected' : ''}>Activas</option>
+                                <option value="historial" ${state.plantsTab === 'historial' ? 'selected' : ''}>Historial/Cosechadas</option>
+                            </select>
                             <button class="btn btn-outline" onclick="handlers.editSpace('${space.id}')">
                                 <i class="fa-solid fa-pen"></i> Editar
                             </button>
@@ -1122,7 +1127,9 @@
                                         ${this._badgeEtapa(p.etapa)}
                                     </div>
                                 </td>
-                                <td onclick="handlers.viewPlantDetail('${p.id}')">${utils.daysBetween(p.fechaInicio, new Date())} d</td>
+                                <td onclick="handlers.viewPlantDetail('${p.id}')">
+                                    ${p.estado === 'Cosechada' && p.pesoFinal ? `<span style="color: var(--accent-teal); font-weight: bold;">${p.pesoFinal}g</span>` : `${utils.daysBetween(p.fechaInicio, new Date())} d`}
+                                </td>
                                 <td onclick="handlers.viewPlantDetail('${p.id}')"><span style="color: var(--${utils.getPlantStatusColor(p)});"><i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${p.estado}</span></td>
                             </tr>
                             `;
@@ -1153,9 +1160,15 @@
                             </button>
                             <h1 class="page-title">${p.nombre} <span style="font-size:14px; color:var(--text-secondary)">${p.variedad}</span></h1>
                         </div>
-                        <button class="btn btn-outline" onclick="handlers.openMoveModal()">
-                            <i class="fa-solid fa-arrow-right-arrow-left"></i> Mover
-                        </button>
+                        <div style="display: flex; gap: 12px;">
+                            ${p.estado !== 'Cosechada' ? `
+                            <button class="btn btn-outline" style="color: var(--accent-teal); border-color: var(--accent-teal);" onclick="handlers.harvestPlant('${p.id}')">
+                                <i class="fa-solid fa-basket-shopping"></i> Cosechar
+                            </button>` : ''}
+                            <button class="btn btn-outline" onclick="handlers.openMoveModal()">
+                                <i class="fa-solid fa-arrow-right-arrow-left"></i> Mover
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="grid-kpi">
@@ -1221,6 +1234,19 @@
             },
 
             logView() {
+                const currentFilter = state.logFilter || 'Todos';
+                const filters = ['Todos', 'Riego', 'Nutrientes', 'Medicion', 'Poda'];
+                
+                const filterHtml = filters.map(f => `
+                    <button class="btn btn-outline" style="border-radius: 999px; padding: 4px 16px; font-size: 13px; ${currentFilter === f ? 'background: var(--accent-teal-dim); color: var(--accent-teal); border-color: var(--accent-teal);' : ''}" onclick="handlers.setLogFilter('${f}')">
+                        ${f === 'Medicion' ? 'Mediciones' : f}
+                    </button>
+                `).join('');
+
+                const logsToShow = currentFilter === 'Todos' 
+                    ? state.logs 
+                    : state.logs.filter(l => l.tipo.toLowerCase() === currentFilter.toLowerCase() || (currentFilter === 'Medicion' && l.tipo.toLowerCase().includes('medici')) || l.tipo.toLowerCase().includes(currentFilter.toLowerCase()));
+
                 return `
                     <div class="page-header">
                         <h1 class="page-title">Grow Log</h1>
@@ -1228,10 +1254,14 @@
                             <i class="fa-solid fa-plus"></i> Nueva Entrada
                         </button>
                     </div>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px;">
+                        ${filterHtml}
+                    </div>
                     
                     <div class="card">
                         <div class="timeline">
-                            ${state.logs.map(l => this._logItem(l)).join('')}
+                            ${logsToShow.length ? logsToShow.map(l => this._logItem(l)).join('') : '<div class="empty-state">No hay registros para este filtro.</div>'}
                         </div>
                     </div>
                 `;
@@ -1954,6 +1984,32 @@
                 // Close if forced (X button or Cancel) OR clicked exactly on overlay
                 if(force || (e && e.target.id === modalId)) {
                     document.getElementById(modalId).classList.remove('active');
+                }
+            },
+
+            setLogFilter(f) {
+                state.logFilter = f;
+                render.app();
+            },
+            
+            setPlantsTab(tab) {
+                state.plantsTab = tab;
+                render.app();
+            },
+            
+            harvestPlant(id) {
+                const p = state.plants.find(plant => plant.id === id);
+                if (!p) return;
+                const confirmHarvest = prompt("¿Deseas finalizar este cultivo? (Opcional: Ingresa el peso seco en gramos)", "0");
+                if (confirmHarvest !== null) {
+                    p.estado = 'Cosechada';
+                    p.activa = false;
+                    const peso = parseFloat(confirmHarvest);
+                    if (!isNaN(peso) && peso > 0) {
+                        p.pesoFinal = peso;
+                    }
+                    saveState();
+                    render.app();
                 }
             },
 
