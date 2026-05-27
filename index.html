@@ -808,7 +808,7 @@
            3. UTILS
            ========================================================================= */
         const utils = {
-            getPlanTemplate(etapa, fechaInicio) {
+            getPlanTemplate(etapa, fechaInicio, floracionSemanas = 8) {
                 const base = new Date(fechaInicio);
                 const addDays = (d) => {
                     const r = new Date(base);
@@ -816,38 +816,42 @@
                     return r.toISOString().split('T')[0];
                 };
 
-                const templates = {
-                    'germinación': [
+                const weeks = parseInt(floracionSemanas) || 8;
+                const etapaNorm = etapa.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                
+                let rawEvents = [];
+                if (etapaNorm.includes('germinacion')) {
+                    rawEvents = [
                         { dia: 0,  accion: 'Germinación — humedad alta, 18/6 luz',      tipo: 'inicio' },
                         { dia: 7,  accion: 'Trasplante a sustrato definitivo',           tipo: 'otro' },
                         { dia: 14, accion: 'Inicio vegetativo — bajar humedad a 60%',    tipo: 'inicio' },
-                        { dia: 35, accion: 'Revisión de sexo (semilla regular)',         tipo: 'otro' },
                         { dia: 42, accion: 'Cambio a floración — 12/12',                 tipo: 'inicio' },
-                        { dia: 49, accion: 'Primera defoliación de floración',           tipo: 'poda' },
-                        { dia: 70, accion: 'Lavado de raíces — flush',                   tipo: 'riego' },
-                        { dia: 77, accion: 'Cosecha estimada — revisar tricomas',        tipo: 'cosecha' },
-                    ],
-                    'vegetativo': [
+                        { dia: 63, accion: 'Última defoliación permitida (Día 21 de floración)', tipo: 'poda' },
+                        { dia: 42 + weeks * 7 - 14, accion: 'Inicio revisión de tricomas y lavado de raíces', tipo: 'riego' },
+                        { dia: 42 + weeks * 7, accion: 'Cosecha estimada — revisar tricomas', tipo: 'cosecha' }
+                    ];
+                } else if (etapaNorm.includes('floracion')) {
+                    rawEvents = [
+                        { dia: 0,  accion: 'Inicio de floración — 12/12',                tipo: 'inicio' },
+                        { dia: 7,  accion: 'Defoliación de apertura',                    tipo: 'poda' },
+                        { dia: 21, accion: 'Última defoliación permitida (Día 21 de floración)', tipo: 'poda' },
+                        { dia: weeks * 7 - 14, accion: 'Inicio revisión de tricomas y lavado de raíces', tipo: 'riego' },
+                        { dia: weeks * 7, accion: 'Cosecha estimada — revisar tricomas', tipo: 'cosecha' }
+                    ];
+                } else {
+                    // vegetativo / plántula / otro
+                    rawEvents = [
                         { dia: 0,  accion: 'Inicio vegetativo activo',                   tipo: 'inicio' },
                         { dia: 7,  accion: 'Topping o LST inicial',                      tipo: 'poda' },
                         { dia: 21, accion: 'Defoliación leve',                           tipo: 'poda' },
                         { dia: 28, accion: 'Cambio a floración — 12/12',                 tipo: 'inicio' },
-                        { dia: 35, accion: 'Primera defoliación de floración',           tipo: 'poda' },
-                        { dia: 56, accion: 'Lavado de raíces — flush',                   tipo: 'riego' },
-                        { dia: 63, accion: 'Cosecha estimada — revisar tricomas',        tipo: 'cosecha' },
-                    ],
-                    'floración': [
-                        { dia: 0,  accion: 'Inicio de floración — 12/12',                tipo: 'inicio' },
-                        { dia: 7,  accion: 'Defoliación de apertura',                    tipo: 'poda' },
-                        { dia: 42, accion: 'Lavado de raíces — flush',                   tipo: 'riego' },
-                        { dia: 49, accion: 'Cosecha estimada — revisar tricomas',        tipo: 'cosecha' },
-                    ],
-                };
+                        { dia: 49, accion: 'Última defoliación permitida (Día 21 de floración)', tipo: 'poda' },
+                        { dia: 28 + weeks * 7 - 14, accion: 'Inicio revisión de tricomas y lavado de raíces', tipo: 'riego' },
+                        { dia: 28 + weeks * 7, accion: 'Cosecha estimada — revisar tricomas', tipo: 'cosecha' }
+                    ];
+                }
 
-                const etapaNorm = etapa.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                const key = Object.keys(templates).find(k => etapaNorm.includes(k.replace('ó','o').replace('ó','o'))) || 'vegetativo';
-                
-                return (templates[key] || templates['vegetativo']).map(e => ({
+                return rawEvents.map(e => ({
                     ...e,
                     id: 'ev_' + Math.random().toString(36).substr(2, 9),
                     fecha: addDays(e.dia)
@@ -2696,6 +2700,10 @@
                             <label class="form-label">Fecha de Inicio</label>
                             <input type="date" class="form-control" name="fecha_inicio" id="wizard-fecha" required onchange="handlers.renderCultivationPlanPreview()">
                         </div>
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label">Semanas de floración estimadas</label>
+                            <input type="number" class="form-control" name="floracion_semanas" id="wizard-floracion-semanas" value="8" min="5" max="16" required onchange="handlers.renderCultivationPlanPreview()" oninput="handlers.renderCultivationPlanPreview()">
+                        </div>
                         
                         <div style="display: flex; justify-content: space-between; margin-top: 24px;">
                             <button type="button" class="btn btn-outline" onclick="handlers.wizardPrev(4)"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
@@ -3271,6 +3279,11 @@
                                 <input type="date" class="form-control" name="fechaInicio" id="cp-wizard-fecha" required style="padding: 12px; font-size: 15px;" onchange="handlers.renderDashboardPlanPreview()">
                             </div>
 
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label class="form-label">Semanas de floración estimadas</label>
+                                <input type="number" class="form-control" name="floracionSemanas" id="cp-wizard-floracion-semanas" value="8" min="5" max="16" required style="padding: 12px; font-size: 15px;" onchange="handlers.renderDashboardPlanPreview()" oninput="handlers.renderDashboardPlanPreview()">
+                            </div>
+
                             <div style="display: flex; gap: 12px; margin-top: 40px;">
                                 <button type="button" class="btn btn-outline" style="padding: 14px; flex: 1;" onclick="handlers.planWizardPrev(3)">Atrás</button>
                                 <button type="button" class="btn btn-primary" style="padding: 14px; flex: 2;" onclick="handlers.submitDashboardPlan()">Confirmar e Iniciar <i class="fa-solid fa-check" style="margin-left: 8px;"></i></button>
@@ -3726,7 +3739,9 @@
                 document.getElementById('cp-preview-start').innerText = `${etapa.charAt(0).toUpperCase() + etapa.slice(1)} (${formatter.format(new Date(fecha + 'T12:00:00'))})`;
                 
                 const listDiv = document.getElementById('cp-preview-list');
-                const plan = utils.getPlanTemplate(etapa, fecha + 'T12:00:00');
+                const florWeeksInput = document.getElementById('cp-wizard-floracion-semanas');
+                const florWeeks = florWeeksInput ? parseInt(florWeeksInput.value) || 8 : 8;
+                const plan = utils.getPlanTemplate(etapa, fecha + 'T12:00:00', florWeeks);
                 
                 listDiv.innerHTML = plan.map((item, index) => {
                     const taskDate = new Date(item.fecha);
@@ -3756,6 +3771,8 @@
                 const mode = document.getElementById('cp-plant-mode').value;
                 const etapa = document.getElementById('cp-wizard-etapa').value;
                 const fechaInicio = document.getElementById('cp-wizard-fecha').value || new Date().toISOString();
+                const floracionSemanasInput = document.getElementById('cp-wizard-floracion-semanas');
+                const floracionSemanas = floracionSemanasInput ? parseInt(floracionSemanasInput.value) || 8 : 8;
                 
                 let plantIdsToPlan = [];
                 
@@ -3782,6 +3799,7 @@
                             sistema: sistema, 
                             spaceId: spaceId, 
                             fechaInicio: fechaInicio, 
+                            floracionSemanas: floracionSemanas,
                             estado: 'activa' 
                         });
                         plantIdsToPlan.push(pId);
@@ -3794,6 +3812,7 @@
                     if (plant) {
                         plant.etapa = etapa; // Sincronizamos etapa inicial y fecha en plantas existentes tmb
                         plant.fechaInicio = fechaInicio;
+                        plant.floracionSemanas = floracionSemanas;
                         
                         const existingPlanIndex = state.plans.findIndex(p => p.plantId === pId);
                         if (existingPlanIndex > -1) {
@@ -3929,7 +3948,11 @@
                     return;
                 }
                 
-                const plan = utils.getPlanTemplate(etapa, fechaInput + 'T12:00:00');
+                const plan = utils.getPlanTemplate(
+                    etapa, 
+                    fechaInput + 'T12:00:00', 
+                    document.getElementById('wizard-floracion-semanas') ? parseInt(document.getElementById('wizard-floracion-semanas').value) || 8 : 8
+                );
                 if (plan.length === 0) {
                     previewDiv.style.display = 'none';
                     return;
@@ -3956,7 +3979,7 @@
                 const existing = state.plans.find(p => p.plantId === plantId);
                 if (existing) return existing;
                 
-                const events = utils.getPlanTemplate(plant.etapa, plant.fechaInicio);
+                const events = utils.getPlanTemplate(plant.etapa, plant.fechaInicio, plant.floracionSemanas || 8);
                 const planId = 'plan_' + Math.random().toString(36).substr(2, 9);
                 const plan = {
                     id: planId,
@@ -4325,6 +4348,7 @@
                             sistema: data.sistema, 
                             spaceId: data.spaceId, 
                             fechaInicio: data.fecha_inicio || new Date().toISOString(), 
+                            floracionSemanas: parseInt(data.floracion_semanas) || 8,
                             estado: 'activa' 
                         });
 
