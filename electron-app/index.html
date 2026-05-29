@@ -1412,6 +1412,68 @@
                 const diffTime = Math.abs(new Date(date2) - new Date(date1));
                 return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             },
+            getStageGraphicsSVG(etapa, color = 'var(--accent-teal)') {
+                const e = etapa.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (e.includes('germinacion')) {
+                    return `
+                    <svg viewBox="0 0 120 120" fill="none" style="width: 80px; height: 80px;">
+                        <path d="M40 70 C40 50, 50 35, 60 30 C70 35, 80 50, 80 70 C80 82, 70 90, 60 90 C50 90, 40 82, 40 70 Z" stroke="${color}" stroke-width="2" stroke-dasharray="4 2"/>
+                        <path d="M60 30 L60 65 L50 75" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M50 75 L45 88 L52 98 L50 105" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 5px ${color})"/>
+                        <circle cx="50" cy="105" r="2" fill="${color}"/>
+                    </svg>`;
+                } else if (e.includes('plantula')) {
+                    return `
+                    <svg viewBox="0 0 120 120" fill="none" style="width: 80px; height: 80px;">
+                        <path d="M20 90 L100 90" stroke="${color}" stroke-width="1.5" stroke-dasharray="3 3"/>
+                        <path d="M60 90 L60 50" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M60 60 C50 60, 40 50, 40 40 C50 40, 60 50, 60 60 Z" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M60 60 C70 60, 80 50, 80 40 C70 40, 60 50, 60 60 Z" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M60 50 L60 40 L56 32" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M60 50 L64 32" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+                    </svg>`;
+                } else if (e.includes('vegetativo')) {
+                    return `
+                    <svg viewBox="0 0 120 120" fill="none" style="width: 80px; height: 80px;">
+                        <path d="M60 100 L60 30" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M60 80 L35 60 L18 64" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M60 80 L85 60 L102 64" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M60 55 L40 40 L28 42" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M60 55 L80 40 L92 42" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M60 30 L53 10 L60 0 L67 10 L60 30" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M35 60 L15 50 L5 60 L20 70 Z" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M40 40 L20 30 L10 40 L25 50 Z" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M85 60 L105 50 L115 60 L100 70 Z" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M80 40 L100 30 L110 40 L95 50 Z" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>`;
+                } else if (e.includes('floracion')) {
+                    return `
+                    <svg viewBox="0 0 120 120" fill="none" style="width: 80px; height: 80px;">
+                        <path d="M60 100 L60 20" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M60 20 C45 35, 40 60, 60 90 C80 60, 75 35, 60 20 Z" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2" stroke-linejoin="round" style="filter: drop-shadow(0 0 6px ${color})"/>
+                        <path d="M60 45 L32 50 L20 32 L48 35 Z" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M60 65 L25 70 L10 52 L42 55 Z" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M60 45 L88 50 L100 32 L72 35 Z" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M60 65 L95 70 L110 52 L78 55 Z" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M60 20 L60 5" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="60" cy="5" r="2.5" fill="${color}"/>
+                        <path d="M50 25 L35 12" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="35" cy="12" r="2" fill="${color}"/>
+                        <path d="M70 25 L85 12" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="85" cy="12" r="2" fill="${color}"/>
+                    </svg>`;
+                } else {
+                    return `
+                    <svg viewBox="0 0 120 120" fill="none" style="width: 80px; height: 80px;">
+                        <path d="M60 10 L60 90" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+                        <path d="M60 40 L38 52 M60 40 L82 52" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M60 60 L42 75 M60 60 L78 75" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M50 10 Q60 0 70 10" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M38 52 L32 70 L48 64 Z" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M82 52 L88 70 L72 64 Z" fill="${color}" fill-opacity="0.1" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>`;
+                }
+            },
             generateId() {
                 return '_' + Math.random().toString(36).substr(2, 9);
             },
@@ -1942,16 +2004,42 @@
                         const viewMode = state.plantsViewMode || 'grid';
                         let plantsRendered = '';
                         if (spacePlants.length) {
-                            if (viewMode === 'grid') {
-                                plantsRendered = this.renderPlantsGrid(spacePlants);
-                            } else {
-                                plantsRendered = `
-                                <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
-                                    <div class="table-wrapper" style="border: none; border-radius: 0;">
-                                        ${this.renderPlantsTable(spacePlants)}
+                            const groupedPlants = {};
+                            spacePlants.forEach(p => {
+                                const sectorName = p.sector || 'Principal';
+                                if (!groupedPlants[sectorName]) {
+                                    groupedPlants[sectorName] = [];
+                                }
+                                groupedPlants[sectorName].push(p);
+                            });
+
+                            const sectors = Object.keys(groupedPlants).sort();
+                            plantsRendered = sectors.map(sector => {
+                                const sectorPlants = groupedPlants[sector];
+                                const sectorHeader = `
+                                    <div class="hud-sector-header" style="display: flex; align-items: center; justify-content: space-between; margin-top: 24px; margin-bottom: 16px; padding: 10px 16px; background: rgba(0, 255, 204, 0.02); border: 1px solid rgba(0, 255, 204, 0.08); border-left: 4px solid var(--accent-teal); border-radius: var(--radius-sm); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: #fff;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <i class="fa-solid fa-layer-group" style="color: var(--accent-teal);"></i> 
+                                            <span>SECTOR / LOTE: <span style="color: var(--accent-teal); text-transform: uppercase;">${sector}</span></span>
+                                        </div>
+                                        <span style="font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono);">${sectorPlants.length} especímenes</span>
                                     </div>
-                                </div>`;
-                            }
+                                `;
+
+                                let sectorContent = '';
+                                if (viewMode === 'grid') {
+                                    sectorContent = this.renderPlantsGrid(sectorPlants);
+                                } else {
+                                    sectorContent = `
+                                    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+                                        <div class="table-wrapper" style="border: none; border-radius: 0;">
+                                            ${this.renderPlantsTable(sectorPlants)}
+                                        </div>
+                                    </div>`;
+                                }
+                                
+                                return sectorHeader + sectorContent;
+                            }).join('');
                         } else {
                             plantsRendered = `<div class="card" style="margin-bottom: 24px;"><div class="empty-state">No hay plantas en este espacio. Agrega tu primera planta.</div></div>`;
                         }
@@ -2167,13 +2255,8 @@
                             <div style="height: 140px; width: 100%; position: relative; overflow: hidden; background: ${photoUrl ? `url('${photoUrl}') center/cover no-repeat` : 'var(--bg-surface-active)'}; display: flex; align-items: flex-end; padding: 16px;">
                                 
                                 ${!photoUrl ? `
-                                    <div style="position: absolute; inset: 0; opacity: 0.12; display: flex; align-items: center; justify-content: center; pointer-events: none;">
-                                        <svg viewBox="0 0 100 100" fill="none" style="width: 80px; height: 80px;">
-                                            <path d="M50 90V10" stroke="var(--accent-teal)" stroke-width="2"/>
-                                            <path d="M50 10L32 35H50L68 35L50 10Z" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linejoin="round"/>
-                                            <path d="M32 35L15 52L36 54L50 35L32 35Z" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linejoin="round"/>
-                                            <path d="M68 35L85 52L64 54L50 35L68 35Z" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linejoin="round"/>
-                                        </svg>
+                                    <div style="position: absolute; inset: 0; opacity: 0.22; display: flex; align-items: center; justify-content: center; pointer-events: none; filter: drop-shadow(0 0 6px ${stageColor});">
+                                        ${utils.getStageGraphicsSVG(p.etapa, stageColor)}
                                     </div>
                                 ` : ''}
                                 
@@ -3587,6 +3670,10 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label class="form-label">Sector / Lote / Estante (Opcional)</label>
+                        <input type="text" class="form-control" id="move-sector-input" name="sector" placeholder="Ej: Sector A, Estante 2">
+                    </div>
                 `;
                 
                 const taskForm = `
@@ -3738,6 +3825,10 @@
                                 <option value="hidro">Hidroponía</option>
                                 <option value="aeropónico">Aeroponía</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sector / Lote / Estante (Opcional)</label>
+                            <input type="text" class="form-control" name="sector" id="wizard-sector" placeholder="Ej: Sector A, Estante 2">
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-top: 16px;">
                             <button type="button" class="btn btn-outline" onclick="handlers.wizardPrev(3)"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
@@ -5584,6 +5675,7 @@
                             etapa: data.etapa, 
                             sistema: data.sistema, 
                             spaceId: data.spaceId, 
+                            sector: data.sector || 'Principal',
                             fechaInicio: data.fecha_inicio || new Date().toISOString(), 
                             floracionSemanas: parseInt(data.floracion_semanas) || 8,
                             estado: 'activa' 
@@ -5705,6 +5797,7 @@
                     if (plant) {
                         plant.spaceId = data.spaceId;
                         plant.etapa = data.etapa;
+                        plant.sector = data.sector || 'Principal';
                         await saveState();
                     }
                 } else if (modalId === 'metric-modal') {
@@ -5948,6 +6041,10 @@
                 if (!plant) return;
                 document.getElementById('move-space-select').value = plant.spaceId;
                 document.getElementById('move-etapa-select').value = plant.etapa;
+                const sectorInput = document.getElementById('move-sector-input');
+                if (sectorInput) {
+                    sectorInput.value = plant.sector || 'Principal';
+                }
                 this.openModal('move-plant-modal');
             },
 
