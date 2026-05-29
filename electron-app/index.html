@@ -129,22 +129,37 @@
             height: var(--topbar-height);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             padding: 0 24px;
             border-bottom: 1px solid var(--border-color);
+            background: rgba(3, 3, 3, 0.4);
+            backdrop-filter: blur(8px);
         }
 
         .brand-logo {
-            color: var(--accent-teal);
-            font-size: 24px;
-            filter: drop-shadow(0 0 6px var(--accent-teal));
+            width: 28px;
+            height: 28px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 0 8px var(--accent-teal));
         }
+        
+        .brand:hover .brand-logo {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 12px var(--accent-teal));
+        }
+
         .brand-name {
+            font-family: 'Outfit', sans-serif;
             font-size: 20px;
             font-weight: 700;
-            letter-spacing: 0.05em;
+            color: #ffffff;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            font-family: var(--font-mono);
+        }
+
+        .brand-name span {
+            color: var(--accent-teal);
+            font-weight: 300;
         }
 
         .nav-menu {
@@ -1070,9 +1085,26 @@
         
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar">
-            <div class="brand">
-                <i class="fa-solid fa-leaf brand-logo"></i>
-                <span class="brand-name">AuraGrow</span>
+            <div class="brand" style="cursor: pointer;" onclick="router.navigate('dashboard')">
+                <svg class="brand-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 90V10" stroke="var(--accent-teal)" stroke-width="3" stroke-linecap="round"/>
+
+                    <path d="M50 10L32 35H50L68 35L50 10Z" fill="var(--accent-teal)" fill-opacity="0.15" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+
+                    <path d="M32 35L15 52L36 54L50 35L32 35Z" fill="var(--accent-teal)" fill-opacity="0.1" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M68 35L85 52L64 54L50 35L68 35Z" fill="var(--accent-teal)" fill-opacity="0.1" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+
+                    <path d="M15 52L22 72L42 66L36 54L15 52Z" fill="var(--accent-teal)" fill-opacity="0.15" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M85 52L78 72L58 66L64 54L85 52Z" fill="var(--accent-teal)" fill-opacity="0.15" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+
+                    <path d="M32 35H50V54L36 54L32 35Z" fill="var(--accent-teal)" fill-opacity="0.2" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M68 35H50V54L64 54L68 35Z" fill="var(--accent-teal)" fill-opacity="0.2" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M36 54L50 54V66L42 66L36 54Z" fill="var(--accent-teal)" fill-opacity="0.25" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M64 54L50 54V66L58 66L64 54Z" fill="var(--accent-teal)" fill-opacity="0.25" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M42 66L50 66V82L42 66Z" fill="var(--accent-teal)" fill-opacity="0.3" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M58 66L50 66V82L58 66Z" fill="var(--accent-teal)" fill-opacity="0.3" stroke="var(--accent-teal)" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <span class="brand-name">Aura<span>Grow</span></span>
             </div>
             <nav class="nav-menu">
                 <a href="#dashboard" class="nav-item active" data-route="dashboard">
