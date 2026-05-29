@@ -420,6 +420,358 @@
         .priority-media { color: var(--status-alert); }
         .priority-baja { color: var(--status-info); }
 
+        /* =========================================================================
+           UX IMPROVEMENTS (MEJORA 4)
+           ========================================================================= */
+        /* 1. Agenda Semanal & Estado Lunar */
+        .weekly-agenda-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .weekly-agenda-strip {
+            display: flex;
+            gap: 6px;
+            flex: 1;
+            min-width: 280px;
+        }
+        .weekly-agenda-day {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 4px;
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.01);
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .weekly-agenda-day.today {
+            background: rgba(16, 185, 129, 0.05);
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.1);
+        }
+        .weekly-agenda-day.today .day-num {
+            color: var(--accent-teal);
+            font-weight: 700;
+        }
+        .weekly-agenda-day .day-name {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .weekly-agenda-day .day-num {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            margin-top: 2px;
+        }
+        
+        /* Lunar Widget */
+        .lunar-widget {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+        .lunar-widget i {
+            color: var(--accent-teal);
+            font-size: 14px;
+            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+        .lunar-phase-name {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* 2. Quick Actions CSS */
+        .quick-actions-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 640px) {
+            .quick-actions-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .quick-action-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .quick-action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(16, 185, 129, 0.15),
+                transparent
+            );
+            transition: 0.5s;
+        }
+        .quick-action-btn:hover::before {
+            left: 100%;
+        }
+        .quick-action-btn:hover {
+            background: rgba(16, 185, 129, 0.04);
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+            transform: translateY(-2px);
+        }
+        .quick-action-btn i {
+            font-size: 14px;
+            color: var(--accent-teal);
+        }
+        .quick-actions-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        /* 3. Lifecycle Timeline CSS */
+        .lifecycle-timeline {
+            position: relative;
+            padding-left: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin: 20px 0;
+        }
+        .lifecycle-timeline::before {
+            content: '';
+            position: absolute;
+            left: 9px;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background: var(--border-color);
+        }
+        .lifecycle-node {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .lifecycle-dot {
+            position: absolute;
+            left: -32px;
+            top: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--bg-main);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+        .lifecycle-node.active .lifecycle-dot {
+            border-color: var(--accent-teal);
+            background: var(--accent-teal-dim);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        .lifecycle-node.completed .lifecycle-dot {
+            border-color: var(--accent-teal);
+            background: var(--accent-teal);
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
+        }
+        .lifecycle-dot i {
+            font-size: 8px;
+            color: transparent;
+            transition: all 0.2s;
+        }
+        .lifecycle-node.completed .lifecycle-dot i {
+            color: #000;
+        }
+        .lifecycle-node.active .lifecycle-dot i {
+            color: var(--accent-teal);
+        }
+        .lifecycle-node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .lifecycle-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: capitalize;
+        }
+        .lifecycle-node.active .lifecycle-title {
+            color: #fff;
+        }
+        .lifecycle-node.completed .lifecycle-title {
+            color: var(--text-primary);
+        }
+        .lifecycle-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: var(--radius-pill);
+            background: rgba(255,255,255,0.02);
+            color: var(--text-secondary);
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+        }
+        .lifecycle-node.active .lifecycle-badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-teal);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+        .lifecycle-node.completed .lifecycle-badge {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+        .lifecycle-details {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* 4. Chat contextual IA */
+        .ai-chat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-top: 24px;
+            box-shadow: var(--shadow-card);
+        }
+        .ai-chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #fff;
+            font-size: 14px;
+        }
+        .ai-chat-header i {
+            color: var(--accent-teal);
+            font-size: 16px;
+            text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+        .ai-chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 4px 8px;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .ai-chat-input-wrapper:focus-within {
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+        }
+        .ai-chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 13px;
+            padding: 6px 4px;
+            outline: none;
+        }
+        .ai-chat-send {
+            background: transparent;
+            border: none;
+            color: var(--accent-teal);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ai-chat-send:hover {
+            background: var(--accent-teal-dim);
+        }
+        .ai-chat-log {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            background: rgba(255,255,255,0.01);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            border-left: 2px solid var(--accent-teal);
+            display: none;
+        }
+
+        /* Toast Notification Styles */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid var(--accent-teal);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            z-index: 9999;
+            font-family: var(--font-main);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+        }
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
         /* Calendar CSS */
         .calendar-nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--bg-surface); padding: 12px 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px; }
         .calendar-nav-buttons { display: flex; gap: 8px; align-items: center; }
@@ -900,6 +1252,66 @@
                 else if (age < 25.84)  return { emoji: '🌗', name: 'Cuarto Menguante' };
                 else                   return { emoji: '🌘', name: 'Luna Menguante' };
             },
+            getLifecycleTimeline(plant) {
+                const now = new Date();
+                const start = new Date(plant.fechaInicio + 'T12:00:00');
+                const elapsed = Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
+                
+                const stages = [
+                    { key: 'germinación', name: 'Germinación', icon: 'fa-seedling', defaultDays: 14 },
+                    { key: 'plántula', name: 'Plántula', icon: 'fa-leaf', defaultDays: 7 },
+                    { key: 'vegetativo', name: 'Vegetativo', icon: 'fa-plant-wilt', defaultDays: 28 },
+                    { key: 'floración', name: 'Floración', icon: 'fa-sun', defaultDays: (plant.floracionSemanas || 8) * 7 }
+                ];
+                
+                // Si es un clon, no pasa por Germinación
+                const isClon = plant.origen === 'clon';
+                const activeStages = isClon ? stages.filter(s => s.key !== 'germinación') : stages;
+                
+                // Determinar qué etapas están completas, activa o futuras
+                const currentIdx = activeStages.findIndex(s => s.key === plant.etapa.toLowerCase());
+                
+                let currentOffset = 0;
+                return activeStages.map((stage, idx) => {
+                    let status = 'future';
+                    let days = 0;
+                    let date = new Date(start);
+                    date.setDate(start.getDate() + currentOffset);
+                    
+                    if (idx < currentIdx) {
+                        status = 'completed';
+                        days = stage.defaultDays;
+                        currentOffset += stage.defaultDays;
+                    } else if (idx === currentIdx) {
+                        status = 'active';
+                        days = Math.max(0, elapsed - currentOffset);
+                    } else {
+                        status = 'future';
+                        days = stage.defaultDays;
+                    }
+                    
+                    return {
+                        ...stage,
+                        status,
+                        days,
+                        dateStr: date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+                    };
+                });
+            },
+            showToast(message) {
+                let toast = document.getElementById('aura-toast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'aura-toast';
+                    toast.className = 'toast-notification';
+                    document.body.appendChild(toast);
+                }
+                toast.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--accent-teal);"></i> <span>${message}</span>`;
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            },
             getSpaceIcon(tipo) {
                 const t = (tipo || '').toLowerCase();
                 if (t === 'secado') return 'fa-wind';
@@ -1036,6 +1448,80 @@
                 
                 const lunar = utils.getLunarPhase();
 
+                // 1. GENERAR AGENDA SEMANAL
+                const startOfWeek = new Date(now);
+                const currentDayOfWeek = now.getDay();
+                const distanceToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+                startOfWeek.setDate(now.getDate() + distanceToMonday); // Monday
+                
+                let weeklyDaysHtml = '';
+                const dayNamesShort = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(startOfWeek);
+                    d.setDate(startOfWeek.getDate() + i);
+                    const isToday = d.toDateString() === now.toDateString();
+                    weeklyDaysHtml += `
+                        <div class="weekly-agenda-day ${isToday ? 'today' : ''}">
+                            <span class="day-name">${dayNamesShort[i]}</span>
+                            <span class="day-num">${d.getDate()}</span>
+                        </div>
+                    `;
+                }
+
+                const lunarWidgetHtml = `
+                    <div class="lunar-widget" title="${lunar.name}">
+                        <i class="fa-solid fa-moon"></i>
+                        <span>${lunar.emoji}</span>
+                        <span class="lunar-phase-name">${lunar.name}</span>
+                    </div>
+                `;
+
+                const weeklyAgendaHtml = `
+                    <div class="weekly-agenda-container">
+                        <div class="weekly-agenda-strip">
+                            ${weeklyDaysHtml}
+                        </div>
+                        ${lunarWidgetHtml}
+                    </div>
+                `;
+
+                // 2. GENERAR ACCIONES RÁPIDAS
+                let plantSelectorHtml = '';
+                if (activePlants.length > 1) {
+                    plantSelectorHtml = `
+                        <select id="quick-action-plant-select" class="form-control" style="width: auto; padding: 4px 12px; font-size: 12px; background: var(--bg-surface-hover); border-radius: var(--radius-sm); border: 1px solid var(--border-color); color: var(--text-primary); outline: none;">
+                            ${activePlants.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
+                        </select>
+                    `;
+                } else if (activePlants.length === 1) {
+                    plantSelectorHtml = `<span style="font-size: 12px; color: var(--accent-teal); font-weight: 500;"><i class="fa-solid fa-seedling"></i> ${activePlants[0].nombre}</span>`;
+                } else {
+                    plantSelectorHtml = `<span style="font-size: 12px; color: var(--status-critical); font-weight: 500;">No hay plantas activas</span>`;
+                }
+
+                const quickActionsHtml = `
+                    <div style="margin-bottom: 24px;">
+                        <div class="quick-actions-header">
+                            <span>Acciones Rápidas (Registro Express)</span>
+                            ${plantSelectorHtml}
+                        </div>
+                        <div class="quick-actions-bar">
+                            <button class="quick-action-btn" onclick="handlers.quickLog(null, 'Riego')" ${activePlants.length === 0 ? 'disabled' : ''}>
+                                <i class="fa-solid fa-droplet"></i> Riego
+                            </button>
+                            <button class="quick-action-btn" onclick="handlers.quickLog(null, 'Nutrientes')" ${activePlants.length === 0 ? 'disabled' : ''}>
+                                <i class="fa-solid fa-flask"></i> Nutrientes
+                            </button>
+                            <button class="quick-action-btn" onclick="handlers.quickLog(null, 'Poda')" ${activePlants.length === 0 ? 'disabled' : ''}>
+                                <i class="fa-solid fa-scissors"></i> Poda
+                            </button>
+                            <button class="quick-action-btn" onclick="handlers.quickLog(null, 'Medicion')" ${activePlants.length === 0 ? 'disabled' : ''}>
+                                <i class="fa-solid fa-chart-simple"></i> Medición
+                            </button>
+                        </div>
+                    </div>
+                `;
+
                 // Lógica de Sugerencias de Aura
                 let auraSuggestions = [];
                 
@@ -1074,25 +1560,11 @@
                     : `<div style="color: var(--text-secondary); font-size: 14px;">Todo parece estar en orden 🌿</div>`;
 
                 return `
-                    <div class="page-header" style="align-items: center; gap: 16px; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <h1 class="page-title">Dashboard</h1>
-                            <span id="lunar-phase-badge" style="
-                                font-size: 13px;
-                                color: #a1a1aa;
-                                background: #0a0a0a;
-                                border: 1px solid rgba(255,255,255,0.08);
-                                padding: 4px 12px;
-                                border-radius: 9999px;
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 6px;
-                                white-space: nowrap;
-                            ">
-                                ${lunar.emoji} ${lunar.name}
-                            </span>
-                        </div>
+                    <div class="page-header" style="margin-bottom: 12px;">
+                        <h1 class="page-title">Dashboard</h1>
                     </div>
+                    
+                    ${weeklyAgendaHtml}
                     
                     <div class="card cultivation-plan-entry" style="margin-bottom: 24px; border: 1px solid rgba(16, 185, 129, 0.3); background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,5,5,1) 100%); position: relative; overflow: hidden; padding: 32px 24px; box-shadow: 0 8px 32px rgba(16,185,129,0.05); transition: all 0.3s ease; cursor: pointer;" onclick="handlers.openCultivationPlanModal()">
                         <!-- Marca de agua icono grande -->
@@ -1113,6 +1585,8 @@
                             </div>
                         </div>
                     </div>
+
+                    ${quickActionsHtml}
 
                     <div class="grid-kpi">
                         <div class="card kpi-card">
@@ -1538,22 +2012,49 @@
                     </div>
 
                     <div id="tab-content-resumen" style="display: ${state.activePlantTab === 'resumen' ? 'block' : 'none'};">
-                        <div class="grid-kpi">
-                            <div class="card kpi-card">
-                                <span class="kpi-label">pH Actual</span>
-                                <div class="kpi-value">${latestEnv.ph || '--'}</div>
+                        <div class="grid-2col" style="grid-template-columns: 1.2fr 0.8fr; gap: 20px; align-items: start; width: 100%;">
+                            <div>
+                                <div class="grid-kpi" style="margin-bottom: 20px; grid-template-columns: repeat(2, 1fr); width: 100%;">
+                                    <div class="card kpi-card">
+                                        <span class="kpi-label">pH Actual</span>
+                                        <div class="kpi-value">${latestEnv.ph || '--'}</div>
+                                    </div>
+                                    <div class="card kpi-card">
+                                        <span class="kpi-label">EC Actual</span>
+                                        <div class="kpi-value">${latestEnv.ec || '--'}</div>
+                                    </div>
+                                    <div class="card kpi-card">
+                                        <span class="kpi-label">Temperatura</span>
+                                        <div class="kpi-value">${latestEnv.temperatura || '--'} <span class="kpi-unit">°C</span></div>
+                                    </div>
+                                    <div class="card kpi-card">
+                                        <span class="kpi-label">Humedad</span>
+                                        <div class="kpi-value">${latestEnv.humedad || '--'} <span class="kpi-unit">%</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="ai-chat-card">
+                                    <div class="ai-chat-header">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                        <span>Consultar a Asistente Aura</span>
+                                    </div>
+                                    <div class="ai-chat-input-wrapper">
+                                        <input type="text" class="ai-chat-input" id="ai-chat-input-${p.id}" placeholder="Preguntale a Aura sobre esta planta..." onkeypress="if(event.key === 'Enter') handlers.askAura('${p.id}')">
+                                        <button class="ai-chat-send" onclick="handlers.askAura('${p.id}')">
+                                            <i class="fa-solid fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                    <div class="ai-chat-log" id="ai-chat-log-${p.id}"></div>
+                                </div>
                             </div>
-                            <div class="card kpi-card">
-                                <span class="kpi-label">EC Actual</span>
-                                <div class="kpi-value">${latestEnv.ec || '--'}</div>
-                            </div>
-                            <div class="card kpi-card">
-                                <span class="kpi-label">Temperatura</span>
-                                <div class="kpi-value">${latestEnv.temperatura || '--'} <span class="kpi-unit">°C</span></div>
-                            </div>
-                            <div class="card kpi-card">
-                                <span class="kpi-label">Humedad</span>
-                                <div class="kpi-value">${latestEnv.humedad || '--'} <span class="kpi-unit">%</span></div>
+
+                            <div class="card" style="padding: 20px;">
+                                <div class="section-title" style="margin-bottom: 16px;">
+                                    <i class="fa-solid fa-timeline" style="color: var(--accent-teal)"></i> Ciclo de Vida
+                                </div>
+                                <div class="lifecycle-timeline">
+                                    ${this._renderLifecycleTimeline(p)}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1684,6 +2185,40 @@
                     }).join('')}
                     </div>
                 </div>`;
+            },
+
+            _renderLifecycleTimeline(plant) {
+                const timeline = utils.getLifecycleTimeline(plant);
+                return timeline.map(s => {
+                    const statusClass = s.status; // 'completed' | 'active' | 'future'
+                    let statusLabel = '';
+                    if (s.status === 'completed') {
+                        statusLabel = `<span class="lifecycle-badge">${s.days} días</span>`;
+                    } else if (s.status === 'active') {
+                        statusLabel = `<span class="lifecycle-badge active">Activa (${s.days}d)</span>`;
+                    } else {
+                        statusLabel = `<span class="lifecycle-badge">Futuro</span>`;
+                    }
+                    
+                    let dotIcon = 'fa-circle';
+                    if (s.status === 'completed') dotIcon = 'fa-check';
+                    else if (s.status === 'active') dotIcon = 'fa-play';
+                    
+                    return `
+                        <div class="lifecycle-node ${statusClass}">
+                            <div class="lifecycle-dot">
+                                <i class="fa-solid ${dotIcon}"></i>
+                            </div>
+                            <div class="lifecycle-node-header">
+                                <span class="lifecycle-title">${s.name}</span>
+                                ${statusLabel}
+                            </div>
+                            <div class="lifecycle-details">
+                                ${s.status === 'active' ? `Iniciada el ${s.dateStr}.` : s.status === 'completed' ? `Completada el ${s.dateStr}.` : `Fecha estimada: ${s.dateStr}.`}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             },
 
             planesView() {
@@ -4196,6 +4731,140 @@
                     await saveState();
                     render.app();
                 }
+            },
+            async quickLog(plantId, tipo) {
+                // Si no se especifica plantId, buscar el selector de la barra de acciones rápidas
+                if (!plantId) {
+                    const select = document.getElementById('quick-action-plant-select');
+                    if (select) {
+                        plantId = select.value;
+                    } else if (state.plants.filter(p => p.estado === 'activa').length === 1) {
+                        plantId = state.plants.filter(p => p.estado === 'activa')[0].id;
+                    }
+                }
+                
+                if (!plantId) {
+                    alert('Por favor, selecciona o crea una planta activa primero.');
+                    return;
+                }
+                
+                const plant = state.plants.find(p => p.id === plantId);
+                if (!plant) return;
+                
+                let nota = '';
+                let foto = '';
+                
+                if (tipo === 'Riego') {
+                    nota = '[Volumen: 500ml, pH: 6.2, EC: 1.2] Riego rápido con agua pura y nutrientes base';
+                } else if (tipo === 'Nutrientes') {
+                    nota = '[Dosis: Fertilizantes de vegetación/floración en dosis moderada] Aplicación rápida de nutrientes';
+                } else if (tipo === 'Poda') {
+                    nota = 'Poda de mantenimiento y defoliación baja para mejorar penetración de luz';
+                } else if (tipo === 'Medicion') {
+                    const temp = 24.5;
+                    const hum = 55;
+                    const vpd = handlers.calcularVPD(temp, hum);
+                    nota = `[Temp: ${temp}°C, Hum: ${hum}%, VPD: ${vpd}kPa] Lectura rápida de clima`;
+                }
+                
+                const newLog = {
+                    id: utils.generateId(),
+                    plantId: plantId,
+                    fecha: new Date().toISOString(),
+                    tipo: tipo.toLowerCase(),
+                    nota: nota,
+                    foto: foto
+                };
+                
+                state.logs.unshift(newLog);
+                
+                // Mostrar notificación toast
+                utils.showToast(`¡Registro express de ${tipo} guardado para ${plant.nombre}!`);
+                
+                await saveState();
+                render.app();
+            },
+
+            askAura(plantId) {
+                const input = document.getElementById(`ai-chat-input-${plantId}`);
+                const logBox = document.getElementById(`ai-chat-log-${plantId}`);
+                if (!input || !input.value.trim() || !logBox) return;
+                
+                const question = input.value.trim();
+                const plant = state.plants.find(p => p.id === plantId);
+                if (!plant) return;
+                
+                // 1. Calcular contexto
+                const plantLogs = state.logs.filter(l => l.plantId === plantId);
+                const riegoLogs = plantLogs.filter(l => l.tipo === 'riego');
+                let phSum = 0, phCount = 0;
+                let ecSum = 0, ecCount = 0;
+                
+                riegoLogs.forEach(l => {
+                    const phMatch = l.nota.match(/pH:\s*([0-9.]+)/i);
+                    const ecMatch = l.nota.match(/EC:\s*([0-9.]+)/i);
+                    if (phMatch) {
+                        phSum += parseFloat(phMatch[1]);
+                        phCount++;
+                    }
+                    if (ecMatch) {
+                        ecSum += parseFloat(ecMatch[1]);
+                        ecCount++;
+                    }
+                });
+                
+                const avgPh = phCount > 0 ? (phSum / phCount).toFixed(2) : 'N/A';
+                const avgEc = ecCount > 0 ? (ecSum / ecCount).toFixed(2) : 'N/A';
+                
+                // Desvíos del VPD
+                const medicionLogs = plantLogs.filter(l => l.tipo === 'medicion');
+                let desviosCount = 0;
+                medicionLogs.slice(0, 5).forEach(l => {
+                    const vpdMatch = l.nota.match(/VPD:\s*([0-9.]+)kPa/i);
+                    if (vpdMatch) {
+                        const vpd = parseFloat(vpdMatch[1]);
+                        const evaluation = handlers.evaluarClima(vpd, plant.etapa);
+                        if (evaluation === 'var(--status-alert)' || evaluation === 'var(--status-critical)') {
+                            desviosCount++;
+                        }
+                    }
+                });
+                
+                const vpdText = desviosCount > 0 ? `${desviosCount} desvíos detectados` : 'Estable / Óptimo';
+                
+                // Formar payload
+                const contextPayload = {
+                    pregunta: question,
+                    planta: plant.nombre,
+                    etapa: plant.etapa,
+                    promedioPh: avgPh,
+                    promedioEc: avgEc,
+                    estadoVpd: vpdText,
+                    timestamp: new Date().toISOString()
+                };
+                
+                console.log("AI Direct Context Payload:", contextPayload);
+                
+                // Mostrar respuesta simulada super interactiva
+                logBox.style.display = 'block';
+                logBox.innerHTML = `
+                    <div style="font-size: 11px; text-transform: uppercase; color: var(--accent-teal); font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-microchip"></i> Contexto Enviado a la IA
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.4); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 8px; word-break: break-all; line-height: 1.4;">
+                        {<br>
+                        &nbsp;&nbsp;"etapa": "${contextPayload.etapa}",<br>
+                        &nbsp;&nbsp;"pH_promedio": "${contextPayload.promedioPh}",<br>
+                        &nbsp;&nbsp;"EC_promedio": "${contextPayload.promedioEc}",<br>
+                        &nbsp;&nbsp;"VPD_historico": "${contextPayload.estadoVpd}"<br>
+                        }
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-primary); line-height: 1.4;">
+                        <strong>Aura responde:</strong> Para tu planta <em>${plant.nombre}</em> en etapa de <strong>${plant.etapa}</strong>, con un pH histórico promedio de <strong>${avgPh}</strong> y un VPD <strong>${vpdText.toLowerCase()}</strong>, te sugiero mantener ${plant.etapa === 'floración' ? 'la humedad en torno al 45-50% y los nutrientes en alta concentración de PK (Fósforo y Potasio)' : 'el fotoperiodo en 18/6 y la humedad relativa elevada al 60-70% para maximizar el crecimiento foliar'}. ¿Querés que simulemos un ajuste del plan?
+                    </div>
+                `;
+                
+                input.value = '';
             },
 
             async deletePlant(id) {
