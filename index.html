@@ -1269,25 +1269,36 @@
                 const activeStages = isClon ? stages.filter(s => s.key !== 'germinación') : stages;
                 
                 // Determinar qué etapas están completas, activa o futuras
-                const currentIdx = activeStages.findIndex(s => s.key === plant.etapa.toLowerCase());
+                let currentIdx = activeStages.findIndex(s => s.key === plant.etapa.toLowerCase());
+                if (currentIdx === -1) {
+                    currentIdx = activeStages.length; // Si la etapa es posterior (cosecha, etc.), todas están completadas
+                }
                 
-                let currentOffset = 0;
                 return activeStages.map((stage, idx) => {
                     let status = 'future';
                     let days = 0;
                     let date = new Date(start);
-                    date.setDate(start.getDate() + currentOffset);
                     
                     if (idx < currentIdx) {
                         status = 'completed';
                         days = stage.defaultDays;
-                        currentOffset += stage.defaultDays;
+                        let offset = 0;
+                        for (let j = idx + 1; j < currentIdx; j++) {
+                            offset += activeStages[j].defaultDays;
+                        }
+                        date.setDate(start.getDate() - offset);
                     } else if (idx === currentIdx) {
                         status = 'active';
-                        days = Math.max(0, elapsed - currentOffset);
+                        days = elapsed;
+                        date = new Date(start);
                     } else {
                         status = 'future';
                         days = stage.defaultDays;
+                        let offset = 0;
+                        for (let j = currentIdx; j < idx; j++) {
+                            offset += activeStages[j].defaultDays;
+                        }
+                        date.setDate(start.getDate() + offset);
                     }
                     
                     return {
