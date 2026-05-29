@@ -1222,6 +1222,7 @@
                     if (!state.cycles) state.cycles = [];
                     if (!state.plans) state.plans = [];
                     if (!state.activePlantTab) state.activePlantTab = 'resumen';
+                    if (!state.plantsViewMode) state.plantsViewMode = 'grid';
                     return true;
                 }
             } catch (e) {
@@ -1938,6 +1939,23 @@
                             `;
                         }
 
+                        const viewMode = state.plantsViewMode || 'grid';
+                        let plantsRendered = '';
+                        if (spacePlants.length) {
+                            if (viewMode === 'grid') {
+                                plantsRendered = this.renderPlantsGrid(spacePlants);
+                            } else {
+                                plantsRendered = `
+                                <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+                                    <div class="table-wrapper" style="border: none; border-radius: 0;">
+                                        ${this.renderPlantsTable(spacePlants)}
+                                    </div>
+                                </div>`;
+                            }
+                        } else {
+                            plantsRendered = `<div class="card" style="margin-bottom: 24px;"><div class="empty-state">No hay plantas en este espacio. Agrega tu primera planta.</div></div>`;
+                        }
+
                         let html = `
                         <div class="page-header">
                             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -1956,11 +1974,22 @@
                                     <option value="activas" ${!state.plantsTab || state.plantsTab === 'activas' ? 'selected' : ''}>Activas</option>
                                     <option value="historial" ${state.plantsTab === 'historial' ? 'selected' : ''}>Historial/Cosechadas</option>
                                 </select>
+                                
+                                <!-- Vista Toggle Buttons -->
+                                <div style="display: flex; gap: 4px; border: 1px solid var(--border-color); padding: 2px; border-radius: var(--radius-md); background: rgba(0,0,0,0.2); align-items: center; margin-right: 4px; height: 34px;">
+                                    <button class="btn btn-outline" style="padding: 4px 8px; border: none; background: ${(state.plantsViewMode || 'grid') === 'grid' ? 'var(--accent-teal-dim)' : 'transparent'}; color: ${(state.plantsViewMode || 'grid') === 'grid' ? 'var(--accent-teal)' : 'var(--text-secondary)'}; height: 26px; display: flex; align-items: center;" onclick="handlers.setPlantsViewMode('grid')" title="Vista Cuadrícula">
+                                        <i class="fa-solid fa-table-cells-large"></i>
+                                    </button>
+                                    <button class="btn btn-outline" style="padding: 4px 8px; border: none; background: ${(state.plantsViewMode || 'grid') === 'list' ? 'var(--accent-teal-dim)' : 'transparent'}; color: ${(state.plantsViewMode || 'grid') === 'list' ? 'var(--accent-teal)' : 'var(--text-secondary)'}; height: 26px; display: flex; align-items: center;" onclick="handlers.setPlantsViewMode('list')" title="Vista Lista">
+                                        <i class="fa-solid fa-list"></i>
+                                    </button>
+                                </div>
+
                                 <button class="btn btn-outline" onclick="handlers.editSpace('${space.id}')">
                                     <i class="fa-solid fa-pen"></i> Editar
                                 </button>
                                 <button class="btn btn-outline" style="color: var(--status-critical); border-color: var(--status-critical);" onclick="handlers.deleteSpace('${space.id}')">
-                                    <i class="fa-solid fa-trash"></i> Borrar
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
                                 <button class="btn btn-primary" onclick="handlers.openPlantModalForSpace('${space.id}')">
                                     <i class="fa-solid fa-plus"></i> Nueva Planta
@@ -1968,11 +1997,7 @@
                             </div>
                         </div>
                         
-                        <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
-                            <div class="table-wrapper" style="border: none; border-radius: 0;">
-                                ${spacePlants.length ? this.renderPlantsTable(spacePlants) : '<div class="empty-state">No hay plantas en este espacio. Agrega tu primera planta.</div>'}
-                            </div>
-                        </div>`;
+                        ${plantsRendered}`;
 
                         if (space.tipo === 'secado' || space.tipo === 'curado') {
                             const spaceLogs = state.logs.filter(l => {
@@ -2065,7 +2090,142 @@
                 });
                 html += `</div>`;
 
-                return html;
+            renderPlantsGrid(plants) {
+                return `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                    ${plants.map(p => {
+                        const pLogs = state.logs.filter(l => l.plantId === p.id).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                        const lastLog = pLogs.length > 0 ? pLogs[0] : null;
+                        
+                        const logWithPhoto = pLogs.find(l => l.foto);
+                        const photoUrl = logWithPhoto ? logWithPhoto.foto : '';
+                        
+                        const dias = utils.daysBetween(p.fechaInicio, new Date());
+                        
+                        let progressPercent = 0;
+                        let progressText = '';
+                        const etapaLower = p.etapa.toLowerCase();
+                        if (etapaLower === 'germinación') {
+                            progressPercent = Math.min(100, Math.round((dias / 14) * 100));
+                            progressText = `${dias}/14 d`;
+                        } else if (etapaLower === 'plántula') {
+                            progressPercent = Math.min(100, Math.round((dias / 7) * 100));
+                            progressText = `${dias}/7 d`;
+                        } else if (etapaLower === 'vegetativo') {
+                            progressPercent = Math.min(100, Math.round((dias / 30) * 100));
+                            progressText = `${dias} d`;
+                        } else if (etapaLower === 'floración') {
+                            const florWeeks = p.floracionSemanas || 8;
+                            const florDays = florWeeks * 7;
+                            progressPercent = Math.min(100, Math.round((dias / florDays) * 100));
+                            progressText = `${dias}/${florDays} d`;
+                        } else {
+                            progressPercent = 100;
+                            progressText = p.estado === 'Cosechada' ? 'Cosechada' : 'Completo';
+                        }
+
+                        let stageColor = 'var(--accent-teal)';
+                        let stageGlow = '0 0 10px rgba(0, 255, 204, 0.2)';
+                        if (etapaLower === 'floración') {
+                            stageColor = '#ff007f';
+                            stageGlow = '0 0 10px rgba(255, 0, 127, 0.2)';
+                        } else if (p.estado === 'Cosechada') {
+                            stageColor = '#a1a1aa';
+                            stageGlow = 'none';
+                        }
+                        
+                        const statusColorName = utils.getPlantStatusColor(p);
+                        let statusLedColor = '#10b981';
+                        let statusPulseClass = 'pulse-neon-wave';
+                        let statusLabel = 'Saludable';
+                        
+                        if (statusColorName === 'status-alert') {
+                            statusLedColor = '#f59e0b';
+                            statusPulseClass = 'hud-pulse-yellow';
+                            statusLabel = 'Alerta';
+                        } else if (statusColorName === 'status-critical') {
+                            statusLedColor = '#ef4444';
+                            statusPulseClass = 'hud-pulse-red';
+                            statusLabel = 'Crítico';
+                        } else if (p.estado === 'Cosechada') {
+                            statusLedColor = '#a1a1aa';
+                            statusPulseClass = '';
+                            statusLabel = 'Cosechada';
+                        }
+
+                        return `
+                        <div class="card" style="padding: 0; overflow: hidden; position: relative; border-color: ${stageColor}; box-shadow: ${stageGlow}; display: flex; flex-direction: column; min-height: 380px;">
+                            
+                            <div class="card-corner-bracket top-left" style="border-top-color: ${stageColor}; border-left-color: ${stageColor};"></div>
+                            <div class="card-corner-bracket top-right" style="border-top-color: ${stageColor}; border-right-color: ${stageColor};"></div>
+                            <div class="card-corner-bracket bottom-left" style="border-bottom-color: ${stageColor}; border-left-color: ${stageColor};"></div>
+                            <div class="card-corner-bracket bottom-right" style="border-bottom-color: ${stageColor}; border-right-color: ${stageColor};"></div>
+                            
+                            <div style="height: 140px; width: 100%; position: relative; overflow: hidden; background: ${photoUrl ? `url('${photoUrl}') center/cover no-repeat` : 'var(--bg-surface-active)'}; display: flex; align-items: flex-end; padding: 16px;">
+                                
+                                ${!photoUrl ? `
+                                    <div style="position: absolute; inset: 0; opacity: 0.12; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+                                        <svg viewBox="0 0 100 100" fill="none" style="width: 80px; height: 80px;">
+                                            <path d="M50 90V10" stroke="var(--accent-teal)" stroke-width="2"/>
+                                            <path d="M50 10L32 35H50L68 35L50 10Z" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linejoin="round"/>
+                                            <path d="M32 35L15 52L36 54L50 35L32 35Z" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linejoin="round"/>
+                                            <path d="M68 35L85 52L64 54L50 35L68 35Z" stroke="var(--accent-teal)" stroke-width="1.5" stroke-linejoin="round"/>
+                                        </svg>
+                                    </div>
+                                ` : ''}
+                                
+                                <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(3, 3, 3, 0.95) 15%, rgba(3, 3, 3, 0.4) 60%, transparent 100%); pointer-events: none;"></div>
+                                
+                                <div style="position: absolute; top: 12px; left: 12px; z-index: 2;">
+                                    ${this._badgeEtapa(p.etapa)}
+                                </div>
+
+                                <div style="position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid rgba(255,255,255,0.08); font-size: 11px;">
+                                    <span class="${statusPulseClass}" style="width: 8px; height: 8px; border-radius: 50%; background: ${statusLedColor}; display: inline-block;"></span>
+                                    <span style="color: ${statusLedColor}; font-weight: 600;">${statusLabel}</span>
+                                </div>
+
+                                <div style="position: relative; z-index: 2; width: 100%;">
+                                    <h3 style="font-size: 18px; margin: 0; color: #fff; font-family: 'Outfit', sans-serif; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${p.nombre}</h3>
+                                    <span style="font-size: 12px; color: var(--text-secondary); text-shadow: 0 1px 2px rgba(0,0,0,0.8); font-family: var(--font-mono);">${p.variedad}</span>
+                                </div>
+                            </div>
+
+                            <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                                
+                                <div>
+                                    <div style="margin-bottom: 16px;">
+                                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; font-family: var(--font-mono);">
+                                            <span style="color: var(--text-secondary);">Progreso Etapa</span>
+                                            <span style="color: ${stageColor}; font-weight: 600;">${progressText}</span>
+                                        </div>
+                                        <div style="height: 6px; background: rgba(255,255,255,0.04); border-radius: var(--radius-pill); overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
+                                            <div style="height: 100%; width: ${progressPercent}%; background: ${stageColor}; border-radius: var(--radius-pill); transition: width 0.3s ease;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: var(--radius-md); font-size: 12px; min-height: 52px; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                                        <span style="color: var(--text-secondary); font-size: 10px; text-transform: uppercase; font-family: var(--font-mono); font-weight: 600;">Último Registro</span>
+                                        <span style="color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; line-height: 1.4;">
+                                            ${lastLog ? `${utils.formatDateTime(lastLog.fecha).split(' ')[0]} · [${lastLog.tipo}] ${lastLog.nota.replace(/\[.*?\]\s*/g, '')}` : 'Sin bitácora aún'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
+                                    <button class="btn btn-outline" style="font-size: 12px; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="handlers.viewPlantDetail('${p.id}')">
+                                        <i class="fa-solid fa-address-card"></i> Ficha Técnica
+                                    </button>
+                                    <button class="btn btn-outline" style="font-size: 12px; padding: 8px; color: var(--accent-teal); border-color: var(--accent-teal-dim); display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="state.selectedPlantId='${p.id}'; handlers.openModal('log-modal')">
+                                        <i class="fa-solid fa-file-pen"></i> Añadir Log
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+                `;
             },
 
             renderPlantsTable(plants) {
@@ -2306,11 +2466,14 @@
 
                     <div id="tab-content-log" style="display: ${state.activePlantTab === 'log' ? 'block' : 'none'};">
                         <div class="card">
-                            <div class="section-title">
-                                <i class="fa-solid fa-book-open" style="color: var(--text-secondary)"></i> Historial Específico
+                            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px;">
+                                <span><i class="fa-solid fa-book-open" style="color: var(--text-secondary)"></i> Historial Específico</span>
+                                <button class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;" onclick="handlers.openModal('log-modal')">
+                                    <i class="fa-solid fa-plus"></i> Nueva Entrada
+                                </button>
                             </div>
                             <div class="timeline">
-                                ${pLogs.length ? pLogs.map(l => this._logItem(l)).join('') : '<div class="empty-state">No hay registros aún</div>'}
+                                ${pLogs.length ? pLogs.map(l => this._logItem(l)).join('') : '<div class="empty-state">No hay registros de bitácora para esta planta. Añade tu primera entrada arriba.</div>'}
                             </div>
                         </div>
                     </div>
@@ -2716,6 +2879,7 @@
 
             logView() {
                 const currentFilter = state.logFilter || 'Todos';
+                const currentPlantFilter = state.logPlantFilter || 'Todos';
                 const filters = ['Todos', 'Riego', 'Nutrientes', 'Medicion', 'Poda', 'Cosecha', 'Secado', 'Curado', 'Final'];
                 
                 const filterHtml = filters.map(f => `
@@ -2724,7 +2888,7 @@
                     </button>
                 `).join('');
 
-                const logsToShow = currentFilter === 'Todos' 
+                let logsToShow = currentFilter === 'Todos' 
                     ? state.logs 
                     : state.logs.filter(l => {
                         const tipoLower = l.tipo.toLowerCase();
@@ -2744,6 +2908,14 @@
                         return tipoLower === filterLower;
                     });
 
+                if (currentPlantFilter !== 'Todos') {
+                    if (currentPlantFilter === 'General') {
+                        logsToShow = logsToShow.filter(l => !l.plantId);
+                    } else {
+                        logsToShow = logsToShow.filter(l => l.plantId === currentPlantFilter);
+                    }
+                }
+
                 return `
                     <div class="page-header">
                         <h1 class="page-title">Grow Log</h1>
@@ -2752,8 +2924,18 @@
                         </button>
                     </div>
 
-                    <div style="display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px;">
-                        ${filterHtml}
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; flex: 1;">
+                            ${filterHtml}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 13px; color: var(--text-secondary); white-space: nowrap;"><i class="fa-solid fa-filter"></i> Filtrar Planta:</span>
+                            <select class="form-control" style="width: auto; padding: 4px 12px; font-size: 13px; height: 32px;" onchange="handlers.setLogPlantFilter(this.value)">
+                                <option value="Todos" ${currentPlantFilter === 'Todos' ? 'selected' : ''}>Todas las plantas</option>
+                                <option value="General" ${currentPlantFilter === 'General' ? 'selected' : ''}>General (Sin planta)</option>
+                                ${state.plants.map(p => `<option value="${p.id}" ${currentPlantFilter === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
                     </div>
                     
                     <div class="card">
@@ -3250,7 +3432,8 @@
             },
 
             plantOptions() {
-                return state.plants.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+                const generalOpt = `<option value="">General (Sin planta específica)</option>`;
+                return generalOpt + state.plants.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
             },
 
             spaceOptions() {
@@ -3449,7 +3632,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Planta Asociada (Opcional)</label>
-                        <select class="form-control" name="plantId">
+                        <select class="form-control" name="plantId" id="task_planta_id">
                             <option value="">General (Ninguna en específico)</option>
                             ${this.plantOptions()}
                         </select>
@@ -3646,7 +3829,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Planta Asociada</label>
-                            <select class="form-control" name="plantId" id="log_planta_id" required>
+                            <select class="form-control" name="plantId" id="log_planta_id">
                                 \${this.plantOptions()}
                             </select>
                         </div>
@@ -4711,6 +4894,39 @@
                 const modal = document.getElementById(modalId);
                 if(modal) {
                     modal.classList.add('active');
+                    if (modalId === 'log-modal') {
+                        const plantSelect = document.getElementById('log_planta_id');
+                        if (plantSelect) {
+                            plantSelect.innerHTML = this.plantOptions();
+                            plantSelect.disabled = false;
+                            
+                            if (state.batchPlantIds && state.batchPlantIds.length > 0) {
+                                if (!document.getElementById('opt-batch')) {
+                                    const opt = document.createElement('option');
+                                    opt.id = 'opt-batch';
+                                    opt.value = 'BATCH';
+                                    plantSelect.insertBefore(opt, plantSelect.firstChild);
+                                }
+                                document.getElementById('opt-batch').textContent = `Lote (${state.batchPlantIds.length} plantas)`;
+                                plantSelect.value = 'BATCH';
+                                plantSelect.disabled = true;
+                            } else if (state.selectedPlantId) {
+                                plantSelect.value = state.selectedPlantId;
+                            } else {
+                                plantSelect.value = '';
+                            }
+                        }
+                    } else if (modalId === 'task-modal') {
+                        const plantSelect = document.getElementById('task_planta_id');
+                        if (plantSelect) {
+                            plantSelect.innerHTML = `<option value="">General (Ninguna en específico)</option>` + state.plants.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+                            if (state.selectedPlantId) {
+                                plantSelect.value = state.selectedPlantId;
+                            } else {
+                                plantSelect.value = '';
+                            }
+                        }
+                    }
                     if (modalId === 'plant-modal') {
                         // Reset wizard
                         for(let i=1; i<=5; i++) {
@@ -5050,8 +5266,19 @@
                 render.app();
             },
             
+            setLogPlantFilter(plantId) {
+                state.logPlantFilter = plantId;
+                render.app();
+            },
+            
             setPlantsTab(tab) {
                 state.plantsTab = tab;
+                render.app();
+            },
+            
+            async setPlantsViewMode(mode) {
+                state.plantsViewMode = mode;
+                await saveState();
                 render.app();
             },
             
